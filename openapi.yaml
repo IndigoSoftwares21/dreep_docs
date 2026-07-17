@@ -1,0 +1,346 @@
+openapi: 3.0.0
+info:
+  title: Dreep API
+  description: The universal media processing and storage API.
+  version: 1.0.0
+servers:
+  - url: https://api.dreep.cloud
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Invalid request parameters"
+        code:
+          type: string
+          example: "invalid_request"
+security:
+  - ApiKeyAuth: []
+paths:
+  /api/v1/upload:
+    post:
+      summary: Upload Media
+      description: >
+        Upload a media file. You can optionally apply initial transforms by passing a JSON string in the `transform` field.
+
+
+        **Supported File Types**:
+        - **Images**: JPEG, PNG, WEBP, GIF, SVG, AVIF, TIFF
+        - **Videos**: MP4, WEBM, MOV, AVI
+        - **Documents**: PDF
+        - **Audio**: MP3, WAV, OGG, AAC
+        
+        **Max File Size**: 100MB
+      tags:
+        - Upload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The media file to upload.
+                transform:
+                  type: string
+                  description: 'JSON string representing initial transforms to apply (e.g. `{"width": 1200, "format": "webp"}`).'
+              required:
+                - file
+      responses:
+        '200':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "med_123456789"
+                  url:
+                    type: string
+                    example: "https://cdn.dreep.cloud/med_123456789/hero.jpg"
+                  size:
+                    type: integer
+                    example: 245000
+                  format:
+                    type: string
+                    example: "jpeg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/fetch/{mediaId}:
+    get:
+      summary: Fetch Media
+      description: Get an asset by ID, applying optional transforms on the fly via query parameters.
+      tags:
+        - Media
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "med_123456789"
+        - name: transforms
+          in: query
+          description: JSON encoded string or preset ID to apply transforms before fetching.
+          schema:
+            type: string
+          example: '{"width": 800, "height": 600, "crop": "fill"}'
+      responses:
+        '200':
+          description: Media binary content
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/media:
+    get:
+      summary: List Media Assets
+      tags:
+        - Media
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: A list of media assets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    filename:
+                      type: string
+                    url:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/media/{mediaId}:
+    delete:
+      summary: Delete Media Asset
+      tags:
+        - Media
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Asset deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/folders:
+    get:
+      summary: List Folders
+      tags:
+        - Folders
+      responses:
+        '200':
+          description: A list of folders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create Folder
+      tags:
+        - Folders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Marketing Assets"
+                parentId:
+                  type: string
+                  example: "fol_987654321"
+              required:
+                - name
+      responses:
+        '200':
+          description: Folder created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/presets:
+    get:
+      summary: List Presets
+      tags:
+        - Presets
+      responses:
+        '200':
+          description: A list of transform presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create Preset
+      tags:
+        - Presets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Thumbnail Generation"
+                operations:
+                  type: array
+                  items:
+                    type: object
+                  example: [{"action": "resize", "width": 200, "height": 200}]
+              required:
+                - name
+                - operations
+      responses:
+        '200':
+          description: Preset created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/presets/{id}:
+    delete:
+      summary: Delete Preset
+      tags:
+        - Presets
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Preset deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
