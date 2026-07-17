@@ -3,11 +3,12 @@
   "theme": "mint",
   "name": "Dreep API Documentation",
   "colors": {
-    "primary": "#E11D48",
-    "light": "#F43F5E",
-    "dark": "#BE123C"
+    "primary": "#10B981",
+    "light": "#34D399",
+    "dark": "#059669"
   },
   "favicon": "/favicon.svg",
+  "openapi": "openapi.yaml",
   "navigation": {
     "pages": [
       {
@@ -15,6 +16,35 @@
         "pages": [
           "index",
           "quickstart"
+        ]
+      },
+      {
+        "group": "Upload",
+        "pages": [
+          "api-reference/upload/upload-media"
+        ]
+      },
+      {
+        "group": "Media",
+        "pages": [
+          "api-reference/media/fetch-media",
+          "api-reference/media/list-media",
+          "api-reference/media/delete-media"
+        ]
+      },
+      {
+        "group": "Folders",
+        "pages": [
+          "api-reference/folders/create-folder",
+          "api-reference/folders/list-folders"
+        ]
+      },
+      {
+        "group": "Presets",
+        "pages": [
+          "api-reference/presets/create-preset",
+          "api-reference/presets/list-presets",
+          "api-reference/presets/delete-preset"
         ]
       }
     ]
