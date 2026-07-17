@@ -8,9 +8,8 @@ servers:
 components:
   securitySchemes:
     ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: x-api-key
+      type: http
+      scheme: bearer
   responses:
     BadRequest:
       description: Bad Request

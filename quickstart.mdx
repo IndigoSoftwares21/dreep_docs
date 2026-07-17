@@ -8,7 +8,7 @@ description: 'Start processing media with Dreep in minutes'
 All API requests require an API key to be passed via the `Authorization` header as a Bearer token.
 
 ```bash
-Authorization: Bearer sk_live_xxxxx
+Authorization: Bearer drp_live_xxxxx
 ```
 
 ## Upload and Process Media
@@ -18,8 +18,8 @@ You can upload and transform media in a single request.
 ### Example: Uploading an Image
 
 ```bash
-curl -X POST "https://api.dreep.cloud/api/v1/http/upload" \
-  -H "Authorization: Bearer sk_live_xxxxx" \
+curl -X POST "https://api.dreep.cloud/api/v1/upload" \
+  -H "Authorization: Bearer drp_live_xxxxx" \
   -F "file=@hero.jpg"
 ```
 
