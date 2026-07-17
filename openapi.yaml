@@ -79,11 +79,16 @@ paths:
                   type: string
                   format: binary
                   description: The media file to upload.
+                folderId:
+                  type: string
+                  description: The ID of the folder to upload the file into. **Required.**
+                  example: "fol_987654321"
                 transform:
                   type: string
                   description: 'JSON string representing initial transforms to apply (e.g. `{"width": 1200, "format": "webp"}`).'
               required:
                 - file
+                - folderId
       responses:
         '200':
           description: Media uploaded successfully
