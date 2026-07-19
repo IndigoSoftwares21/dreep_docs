@@ -55,7 +55,13 @@ paths:
     post:
       summary: Upload Media
       description: >
-        Upload a media file. You can optionally apply initial transforms by passing a JSON string in the `transform` field.
+        Upload a media file. You can optionally apply an initial transform to
+        images by passing any of the transform fields below as separate
+        multipart fields (not a JSON blob) — the same parameters accepted by
+        [Fetch Media](/api-reference/media/fetch-media). When any are present,
+        the transformed result — not the original upload — is what gets
+        stored and returned, and it counts as a transformation against your
+        plan's monthly transform usage.
 
 
         **Supported File Types**:
@@ -63,7 +69,7 @@ paths:
         - **Videos**: MP4, WEBM, MOV, AVI
         - **Documents**: PDF
         - **Audio**: MP3, WAV, OGG, AAC
-        
+
         **Max File Size**: 100MB
       tags:
         - Upload
@@ -82,9 +88,45 @@ paths:
                   type: string
                   description: The ID of the folder to upload the file into. Optional — defaults to the project's default folder when omitted.
                   example: "fol_987654321"
-                transform:
+                format:
                   type: string
-                  description: 'JSON string representing initial transforms to apply (e.g. `{"width": 1200, "format": "webp"}`).'
+                  enum: [jpeg, png, webp, avif, gif, tiff]
+                  description: Re-encode the image to this format before storing.
+                  example: "webp"
+                width:
+                  type: integer
+                  description: Resize to this width in pixels (max 4000).
+                  example: 1200
+                height:
+                  type: integer
+                  description: Resize to this height in pixels (max 4000).
+                fit:
+                  type: string
+                  enum: [cover, contain, fill, inside, outside]
+                  description: How the image should fit `width`/`height`.
+                quality:
+                  type: integer
+                  description: Output quality, 1-100.
+                gravity:
+                  type: string
+                  enum: [north, northeast, east, southeast, south, southwest, west, northwest, center, attention, entropy]
+                  description: Crop anchor point when resizing.
+                dpr:
+                  type: number
+                  description: Device pixel ratio multiplier (max 3).
+                rotate:
+                  type: integer
+                  enum: [90, 180, 270]
+                  description: Rotate by this many degrees clockwise.
+                bg:
+                  type: string
+                  description: Hex color (without `#`) used to pad/fill, e.g. `ffffff`.
+                radius:
+                  type: string
+                  description: Corner radius in pixels, or `max` for a full circle/pill.
+                p:
+                  type: string
+                  description: A saved transform preset key to apply instead of individual fields.
               required:
                 - file
       responses:
@@ -101,16 +143,46 @@ paths:
                   url:
                     type: string
                     example: "https://cdn.dreep.cloud/med_123456789/hero.jpg"
-                  size:
-                    type: integer
-                    example: 245000
+                  originalFilename:
+                    type: string
+                    example: "hero.jpg"
+                  mimetype:
+                    type: string
+                    example: "image/webp"
                   format:
                     type: string
-                    example: "jpeg"
+                    description: Only present for images.
+                    example: "webp"
+                  sizeBytes:
+                    type: integer
+                    example: 245000
+                  width:
+                    type: integer
+                    description: Only present for images.
+                    example: 1200
+                  height:
+                    type: integer
+                    description: Only present for images.
+                  status:
+                    type: string
+                    example: "ready"
+                  folderId:
+                    type: string
+                  projectId:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '402':
+          description: Plan's transformation limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           $ref: '#/components/responses/InternalError'
   /api/v1/fetch/{mediaId}:
