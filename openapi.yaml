@@ -80,14 +80,13 @@ paths:
                   description: The media file to upload.
                 folderId:
                   type: string
-                  description: The ID of the folder to upload the file into. **Required.**
+                  description: The ID of the folder to upload the file into. Optional — defaults to the project's default folder when omitted.
                   example: "fol_987654321"
                 transform:
                   type: string
                   description: 'JSON string representing initial transforms to apply (e.g. `{"width": 1200, "format": "webp"}`).'
               required:
                 - file
-                - folderId
       responses:
         '200':
           description: Media uploaded successfully
@@ -117,7 +116,23 @@ paths:
   /api/v1/fetch/{mediaId}:
     get:
       summary: Fetch Media
-      description: Get an asset by ID, applying optional transforms on the fly via query parameters.
+      description: >
+        Get an asset by ID, applying optional transforms on the fly via query parameters.
+
+
+        This endpoint is public (no API key needed) — how much of that matters
+        depends on the access control of the folder the asset lives in:
+        - **public** folders: fetchable by anyone with the URL.
+        - **private** folders: not fetchable through this endpoint at all. Private
+          assets can only be viewed by an authenticated project member from the
+          Dreep dashboard.
+        - **signed** folders: not fetchable with a bare URL, but a time-limited
+          link (with `exp` and `sig` query parameters already attached) can be
+          generated from the Dreep dashboard and shared — anyone with that link
+          can fetch the asset until it expires. There's no way to generate `exp`/`sig`
+          yourself; only use links produced by the dashboard.
+
+        A request for a private or signed asset without valid credentials returns `401`.
       tags:
         - Media
       parameters:
@@ -133,6 +148,22 @@ paths:
           schema:
             type: string
           example: '{"width": 800, "height": 600, "crop": "fill"}'
+        - name: exp
+          in: query
+          description: >
+            Unix timestamp (seconds) a signed link expires at. Only present on links
+            generated for `signed` folders from the Dreep dashboard — omit for public assets.
+          schema:
+            type: integer
+          example: 1753999999
+        - name: sig
+          in: query
+          description: >
+            Signature authorizing the request until `exp`. Only present on links
+            generated for `signed` folders from the Dreep dashboard.
+          schema:
+            type: string
+          example: "3f2a9c1bd4e7f6a08c5b91d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e91d"
       responses:
         '200':
           description: Media binary content
@@ -230,6 +261,16 @@ paths:
           $ref: '#/components/responses/Unauthorized'
     post:
       summary: Create Folder
+      description: >
+        Create a folder to organize uploads. `accessControlType` controls who
+        can view assets inside it once uploaded:
+        - **public** (default): fetchable by anyone via `/api/v1/fetch/{mediaId}`.
+        - **private**: only viewable by an authenticated project member from
+          the Dreep dashboard — never fetchable through the public API.
+        - **signed**: not fetchable with a bare URL, but a time-limited link
+          can be generated from the Dreep dashboard and shared with anyone,
+          no API key required to use it. See [Fetch Media](/api-reference/media/fetch-media)
+          for how signed links work.
       tags:
         - Folders
       requestBody:
@@ -245,6 +286,11 @@ paths:
                 parentId:
                   type: string
                   example: "fol_987654321"
+                accessControlType:
+                  type: string
+                  enum: [public, private, signed]
+                  default: public
+                  example: "signed"
               required:
                 - name
       responses:
