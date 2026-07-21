@@ -355,9 +355,6 @@ paths:
                 name:
                   type: string
                   example: "Marketing Assets"
-                parentId:
-                  type: string
-                  example: "fol_987654321"
                 accessControlType:
                   type: string
                   enum: [public, private, signed]
@@ -466,3 +463,41 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/v1/usage:
+    get:
+      summary: Get Usage Limits
+      description: Returns your current billing cycle usage for storage, folders, presets, and transformations.
+      tags:
+        - Usage & Billing
+      responses:
+        '200':
+          description: Usage limits retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  limits:
+                    type: object
+                    properties:
+                      storageBytes:
+                        type: integer
+                      folders:
+                        type: integer
+                      presets:
+                        type: integer
+                      transformations:
+                        type: integer
+                  usage:
+                    type: object
+                    properties:
+                      storageBytes:
+                        type: integer
+                      folders:
+                        type: integer
+                      presets:
+                        type: integer
+                      transformations:
+                        type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'

@@ -1,0 +1,75 @@
+---
+title: "Uploading Media"
+description: "How to upload files directly to Dreep Storage using Presigned URLs."
+---
+
+Dreep uses a highly efficient, two-step upload process that allows your users (or your backend) to upload files directly to the underlying Dreep storage edge. This completely bypasses the primary Dreep API server, preventing bottlenecks and eliminating strict file-size limits on the API layer.
+
+### Step 1: Generate a Presigned URL
+
+Make a `POST` request to the `/api/v1/upload` endpoint with the details of the file you intend to upload (size, mime-type, and the destination `folderId`).
+
+The API will return an `uploadUrl` and a tracking `id`.
+
+```json
+{
+  "id": "2f928a3f-1d2a-4a2b-8a8b-123456789abc",
+  "uploadUrl": "https://cdn.dreep.cloud/..."
+}
+```
+
+### Step 2: PUT the file to the Upload URL
+
+Take the `uploadUrl` returned from Step 1, and make an HTTP `PUT` request directly to it containing the raw file binary.
+
+**Crucial requirements for Step 2:**
+
+1. The HTTP method **MUST** be `PUT` (not `POST`).
+2. The `Content-Type` header **MUST** exactly match the `mimeType` you provided in Step 1.
+3. The `Content-Length` header **MUST** exactly match the `sizeBytes` you provided in Step 1.
+
+<CodeGroup>
+```javascript Node.js / Browser
+// 1. Get the presigned URL from your backend / Dreep API
+const { uploadUrl, id } = await getPresignedUrlFromBackend(file);
+
+// 2. Upload directly to Dreep Storage
+const response = await fetch(uploadUrl, {
+method: "PUT",
+headers: {
+"Content-Type": file.type,
+// Note: The browser automatically sets Content-Length based on the file object
+},
+body: file,
+});
+
+if (response.ok) {
+console.log("Upload successful! File ID is:", id);
+}
+
+````
+
+```python Python
+import requests
+
+# 1. Get the presigned URL
+upload_url = "https://cdn.dreep.cloud/..."
+file_path = "video.mp4"
+mime_type = "video/mp4"
+
+# 2. Upload directly to Dreep Storage
+with open(file_path, "rb") as f:
+    headers = { "Content-Type": mime_type }
+    response = requests.put(upload_url, data=f, headers=headers)
+
+if response.status_code == 200:
+    print("Upload successful!")
+````
+
+</CodeGroup>
+
+### Uploading to Secure Folders
+
+By default, uploads go to your project's default public folder. To upload an asset into a Private or Signed folder, simply provide the `folderId` of that secure folder in Step 1.
+
+If you upload into a Signed folder, you can optionally provide `expiresInSeconds` during Step 1 to override the folder's default expiration just for this specific asset.

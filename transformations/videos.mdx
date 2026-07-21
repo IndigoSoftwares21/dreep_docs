@@ -1,0 +1,91 @@
+---
+title: 'Video Transformations'
+description: 'Transcode, trim, and stream adaptive HLS video dynamically.'
+---
+
+Dreep uses an asynchronous FFmpeg worker pipeline to transform video on the fly. You can combine query parameters to re-encode video formats, adjust frame rates, trim clips, or even convert videos into animated GIFs.
+
+## Asynchronous Processing (202 Accepted)
+
+Unlike image transformations (which are processed synchronously and block the request until finished), **video transformations are asynchronous**. Video encoding can take anywhere from a few seconds to several minutes depending on the file size and parameters.
+
+### How it works:
+1. **First Request:** You request a new video transformation (e.g., `?format=webm&fps=30`).
+2. **Dreep Responds:** Dreep immediately queues the job and responds with an HTTP `202 Accepted` status code. 
+   - If the request was made by a browser (`Accept: text/html`), Dreep serves a user-friendly "Processing" HTML page with a loading spinner that automatically refreshes every few seconds.
+   - If the request was made via an API client (`Accept: application/json`), Dreep returns a JSON error: `{ "error": "Asset is processing" }`.
+3. **Completion:** Once the background FFmpeg worker finishes, the next request to that exact URL will return a `200 OK` and serve the fully encoded video file from the CDN edge cache.
+
+---
+
+## 1. Trimming & Clipping
+
+You can extract a specific portion of a video by defining start and end timestamps.
+
+| Parameter | Description | Try It |
+| :--- | :--- | :--- |
+| `trimStart` | Start timestamp in seconds. | `?trimStart=10` |
+| `trimEnd` | End timestamp in seconds. | `?trimEnd=25` |
+
+**Example:**
+Extract a 15-second clip starting at the 10-second mark:
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
+```
+
+---
+
+## 2. Formatting & Codecs
+
+Convert videos to different web-optimized formats or codecs.
+
+| Parameter | Valid Options | Description | Try It |
+| :--- | :--- | :--- | :--- |
+| `format` | `mp4`, `webm`, `gif`, `hls`, `m3u8` | The output container format. | `?format=webm` |
+| `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc` | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
+| `fps` | number (e.g., `24`, `30`, `60`) | Output frame rate. | `?fps=30` |
+
+**Example: Converting Video to Animated GIF**
+You can easily create GIF previews of your videos. It is highly recommended to use `trimStart` and `trimEnd` alongside `fps` when generating GIFs to keep the file size manageable.
+
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f.gif?trimStart=0&trimEnd=3&fps=12
+```
+
+---
+
+## 3. HLS Adaptive Streaming
+
+For large videos, serving a single massive `.mp4` file is inefficient. Dreep supports **HTTP Live Streaming (HLS)**, which chunks your video into smaller `.ts` segments and generates an `.m3u8` manifest file. 
+
+This allows players to stream the video smoothly and buffer only what is needed.
+
+To generate an HLS stream, request the video with `format=hls` or append the `.m3u8` extension:
+
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8
+```
+
+### Implementing an HLS Player
+Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safari does, but Chrome/Firefox do not). You must use a library like [HLS.js](https://github.com/video-dev/hls.js/) or [Video.js](https://videojs.com/).
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<video id="video" controls></video>
+<script>
+  var video = document.getElementById('video');
+  var videoSrc = 'https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8';
+  
+  if (Hls.isSupported()) {
+    var hls = new Hls();
+    hls.loadSource(videoSrc);
+    hls.attachMedia(video);
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari fallback
+    video.src = videoSrc;
+  }
+</script>
+```
+
+> [!NOTE]
+> Like all video transformations, requesting `.m3u8` for the first time will trigger a `202 Accepted` response while the video is chunked and the manifest is generated.

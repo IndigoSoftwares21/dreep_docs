@@ -1,0 +1,33 @@
+---
+title: "Get Usage & Billing Limits"
+openapi: "GET /api/v1/usage"
+---
+
+## Understanding Your Limits
+
+Every API request or dashboard action that interacts with your project's storage or transformation engine increments your billing counters.
+
+Dreep's architecture restricts operations when you exceed your billing plan. If you attempt to upload a file when your storage is full, or transform an image when you've hit your monthly transformation cap, the API will reject the request with a `402 Payment Required` status code.
+
+### The Counters
+
+When you call this endpoint, you will receive the `limits` and `counters` objects which contain:
+
+1. **Storage Bytes**: The total raw binary size of all assets stored in your project (in bytes). This is persistent.
+2. **Transformations Monthly**: The number of image transformations triggered this month. Resets on the 1st of every month.
+3. **Video Transformations Monthly**: The number of video transformations triggered this month. Resets on the 1st of every month. Video transformations count separately from image transformations because they are heavily CPU-intensive.
+4. **Folders**: Total number of folders created.
+5. **Presets**: Total number of transformation presets created.
+
+### 402 Payment Required Error
+
+If you hit an API endpoint that would exceed one of your limits, the response will look like this:
+
+```json
+{
+  "error": "Billing limit reached",
+  "details": "You have exceeded your plan's storage_bytes limit."
+}
+```
+
+To resolve this, you must either delete assets/folders to free up space, or upgrade your plan in the Dreep Dashboard.

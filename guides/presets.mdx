@@ -1,0 +1,55 @@
+---
+title: "Using Presets"
+description: "Simplify your code by defining common transformation parameters as presets."
+---
+
+A Preset is a named collection of transformation parameters that you can apply to any asset dynamically via the URL. Presets are highly useful for defining common formats (like "thumbnail", "hero-banner", "mobile-video") without hardcoding massive query strings into your application code.
+
+When you create a preset via the API (or in your Dreep Dashboard), it gets a unique `key` (e.g. `avatar_sm`).
+
+### Applying a Preset
+
+Once a preset is created, you can apply it to any public or signed media URL by appending the `?p=preset_key` query parameter.
+
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f-1d2a-4a2b.jpg?p=avatar_sm
+```
+
+### Supported Preset Settings
+
+When creating a preset, you pass a `settings` JSON object. The parameters you can provide match the exact same parameters used in the dynamic URL transformation APIs:
+
+**Image Preset Settings Example:**
+```json
+{
+  "name": "Small Avatar",
+  "key": "avatar_sm",
+  "settings": {
+    "width": 128,
+    "height": 128,
+    "fit": "cover",
+    "gravity": "attention",
+    "format": "webp"
+  }
+}
+```
+
+**Video Preset Settings Example:**
+```json
+{
+  "name": "Mobile Friendly 720p HLS",
+  "key": "mobile_hls",
+  "settings": {
+    "height": 720,
+    "format": "hls",
+    "fps": 30,
+    "videoCodec": "libx264"
+  }
+}
+```
+
+### Overriding Presets
+
+If you provide a preset `?p=` but also explicitly provide a URL query parameter, the URL query parameter will take precedence over the preset setting.
+
+For example, if your `avatar_sm` preset sets `format=webp`, but you fetch `?p=avatar_sm&format=png`, the resulting image will be a PNG.

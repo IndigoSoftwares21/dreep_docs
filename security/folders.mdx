@@ -1,0 +1,59 @@
+---
+title: 'Folders & Access Control'
+description: 'Manage asset visibility using Public, Private, and Signed folders.'
+---
+
+Dreep uses a folder-based security model. Every media asset you upload is placed inside a specific folder. The folder's access control type dictates exactly who can view, fetch, or transform the assets inside it.
+
+There are three access control modes:
+
+## 1. Public Folders
+**Assets in a public folder are accessible globally by anyone with the link.**
+
+- **Best for:** Public website assets, open-graph images, public marketing videos, or user avatars.
+- **Caching:** Public assets are aggressively cached on the Dreep CDN using `Cache-Control: public, max-age=31536000` (1 year).
+- **URLs:** Look like standard fetch endpoints without any extra parameters.
+  ```text
+  https://api.dreep.cloud/v1/fetch/2f928a3f-1d2a-4a2b-8a8b-123456789abc.jpg
+  ```
+
+## 2. Private Folders
+**Assets in a private folder are strictly locked down.**
+
+- **Best for:** Internal company documents, unprocessed raw video uploads, or compliance records.
+- **Access:** These assets cannot be fetched via the public `assets.dreep.io` URL at all.
+- **Retrieval:** To view them, you must use your server-side **Dreep Project API Key** to either download them directly to your server or generate a temporary secure link.
+  
+[Learn how to fetch private media.](/security/private-media)
+
+## 3. Signed Folders
+**Assets in a signed folder are only accessible via temporary, HMAC-signed URLs.**
+
+- **Best for:** Premium user content, paid courses, or temporary file sharing (like AWS CloudFront signed URLs).
+- **Access:** When a user requests a file, your backend server generates a temporary signature using your project's **Signing Secret**. You then append the expiration timestamp (`exp`) and the signature (`sig`) to the URL.
+- **URLs:** Look like this:
+  ```text
+  https://api.dreep.cloud/v1/fetch/2f928a...jpg?exp=1774118400&sig=a3f9e2b1...
+  ```
+
+### Default Expiration (Timing)
+When you create a signed folder, you must define a `defaultExpirySeconds` value (e.g., `3600` for 1 hour). 
+
+If a user generates an upload URL or requests a link to the file and does not explicitly provide their own expiration override, the folder's default expiration will be automatically applied.
+
+[Learn how to generate Signed URLs.](/security/signed-urls)
+
+## Creating Folders via API
+
+You can programmatically create folders and assign their access control type using the API:
+
+```bash Create Folder
+curl -X POST https://api.dreep.cloud/v1/folders \
+  -H "x-api-key: YOUR_PROJECT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Premium Course Videos",
+    "accessControl": "signed",
+    "defaultExpirySeconds": 86400
+  }'
+```

@@ -1,0 +1,24 @@
+---
+title: 'Private Media'
+description: 'How to safely access and serve media stored in private folders.'
+---
+
+When an asset is uploaded to a **Private Folder**, it is completely locked down. Unlike Signed Folders, you cannot generate a public URL with an HMAC signature for private media. 
+
+Attempting to access a private asset via the public `api.dreep.cloud/v1/fetch/:id` endpoint will always result in a `401 Unauthorized` or `404 Not Found` response.
+
+## Dashboard-Only Access
+
+Private folders are designed for internal, administrative assets that should **never** be exposed to end-users, even temporarily. 
+
+Because of this strict security model, there are currently no server-to-server API endpoints for fetching private media bytes or generating temporary safe links.
+
+Private media can only be viewed, downloaded, or managed by authenticated Project Members directly within the **Dreep Dashboard**. 
+
+## Serving Protected Media to Users
+
+If your goal is to serve media to your own users securely (e.g., behind a paywall, or for a limited time), you should use **Signed Folders** instead of Private Folders. 
+
+Signed Folders allow you to programmatically generate temporary access URLs using your project's Signing Secret.
+
+[Learn how to generate Signed URLs](/security/signed-urls)
