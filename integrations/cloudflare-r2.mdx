@@ -1,0 +1,34 @@
+---
+title: 'Cloudflare R2 Migration'
+description: 'Connect your Cloudflare R2 bucket to easily import existing media assets into Dreep.'
+---
+
+Dreep supports direct integration with your Cloudflare R2 buckets. By providing read-only credentials and your custom endpoint, you can seamlessly browse and import your legacy R2 objects directly into your Dreep folders without needing to manually download and re-upload them.
+
+## Required Credentials
+
+To connect your R2 bucket, you will need the following information:
+
+- **Endpoint URL:** Your unique R2 account endpoint (e.g., `https://<account_id>.r2.cloudflarestorage.com`).
+- **Bucket Name:** The exact name of your bucket.
+- **Access Key ID:** An API token Access Key with permissions to read from the bucket.
+- **Secret Access Key:** The corresponding Secret Key.
+
+<Card title="Security Best Practice" icon="shield-check" color="#10B981">
+We strongly recommend generating a dedicated R2 API Token with **Object Read** permissions restricted only to the specific bucket you wish to import from.
+</Card>
+
+## Connecting the Integration
+
+Once you have gathered your credentials:
+
+1. Open your Dreep project and navigate to the **Integrations** page.
+2. Click **Connect** on the Cloudflare R2 card.
+3. Enter your Access Key ID, Secret Access Key, Endpoint URL, and Bucket Name into the connection modal.
+4. Dreep securely encrypts these credentials (using AES-256-GCM) before storing them, and verifies the connection.
+
+## Importing Assets
+
+After successfully connecting, click **Import Assets** on the R2 card. 
+
+You can browse the objects in your bucket, select multiple files, choose a destination folder in Dreep, and start the import. Dreep runs the transfer entirely in the background, so you can safely close the window while it progresses!

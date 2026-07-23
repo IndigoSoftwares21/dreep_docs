@@ -56,6 +56,15 @@
               "transformations/images",
               "transformations/videos"
             ]
+          },
+          {
+            "group": "Integrations",
+            "icon": "link",
+            "pages": [
+              "integrations/cloudinary",
+              "integrations/amazon-s3",
+              "integrations/cloudflare-r2"
+            ]
           }
         ]
       },
