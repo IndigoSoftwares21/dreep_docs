@@ -1,4 +1,53 @@
 ---
 title: "Upload Media"
+sidebarTitle: "Standard Upload"
 openapi: "POST /api/v1/upload"
 ---
+
+Upload any media file (images, videos, audio, or documents) directly to Dreep. 
+
+### Initial Transformations
+
+When uploading images or videos, you can optionally pass transformation parameters as additional `multipart/form-data` fields. 
+
+- **Images**: Automatically resized and converted on upload.
+- **Videos**: Supports trimming (`trimStart`, `trimEnd`), frame-rate adjustment (`fps`), and container conversion (`format`).
+
+<RequestExample>
+
+```bash Standard File Upload
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@example-file' \
+  --form folderId=fol_987654321
+```
+
+```bash Image Upload (with Transform)
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@photo.jpg' \
+  --form folderId=fol_987654321 \
+  --form format=webp \
+  --form width=1200 \
+  --form quality=80
+```
+
+```bash Video Upload (with Processing)
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@clip.mp4' \
+  --form folderId=fol_987654321 \
+  --form format=mp4 \
+  --form trimStart=0 \
+  --form trimEnd=15 \
+  --form fps=30
+```
+
+</RequestExample>
+

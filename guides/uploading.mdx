@@ -73,3 +73,27 @@ if response.status_code == 200:
 By default, uploads go to your project's default public folder. To upload an asset into a Private or Signed folder, simply provide the `folderId` of that secure folder in Step 1.
 
 If you upload into a Signed folder, you can optionally provide `expiresInSeconds` during Step 1 to override the folder's default expiration just for this specific asset.
+
+---
+
+## Supported File Formats
+
+Dreep supports direct uploads up to **500MB** per file. Uploaded files are categorized into three asset kinds:
+
+| Asset Kind | Supported Formats / Extensions | Pipeline Behavior |
+| :--- | :--- | :--- |
+| **Image** | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tif`, `.tiff`), BMP (`.bmp`) | Processed via Sharp. Supports resizing, crop/fit, format conversion, and initial transforms. |
+| **Video** | MP4 (`.mp4`), MOV (`.mov`), WebM (`.webm`) | Processed via FFmpeg worker. Supports trimming, FPS adjustment, HLS streaming, and video container conversion. |
+| **Raw File** | **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)<br/>**Text/Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)<br/>**Archives**: ZIP (`.zip`)<br/>**Raw Photos**: HEIC (`.heic`), HEIF (`.heif`) | Stored and served directly as-is. Transformations are not allowed. |
+
+---
+
+## Format Conversion Rules
+
+When requesting format conversions during upload or delivery (via the `format` parameter), Dreep strictly enforces **media family boundaries**:
+
+- **Image → Image**: Images can be converted to `jpeg`, `png`, `webp`, `avif`, `gif`, or `tiff`.
+- **Video → Video**: Videos can be converted to `mp4`, `webm`, `mov`, `hls` (`.m3u8`), or `gif` (animated GIF clip).
+- **Cross-Family Restrictions**: Converting an Image to a Video format (or Video to an Image format other than `gif`) is blocked and returns an `Unsupported format conversion` error.
+- **Raw Files**: Non-transformable raw files (PDF, DOCX, ZIP, HEIC/HEIF) cannot be converted to any target format.
+

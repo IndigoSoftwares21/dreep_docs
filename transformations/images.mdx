@@ -38,12 +38,15 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=400&height=400&fit=contain
 
 ## 2. Formatting & Quality
 
-Convert image types and compress them for optimal web delivery.
+Convert image types and compress them for optimal web delivery. Supported source image formats include **JPEG**, **PNG**, **WebP**, **GIF**, **TIFF**, and **BMP**.
 
 | Parameter | Description | Try It |
 | :--- | :--- | :--- |
-| `format` | The output format. Valid options: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`. | `?format=webp` |
+| `format` | The target image output format. Valid options: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`. | `?format=webp` |
 | `quality` | Compression quality (1-100). Default is 80. Lower values reduce file size. | `?quality=60` |
+
+> [!NOTE]
+> **Conversion Boundaries**: Image conversions must remain within the image family (`jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`). Requesting video output formats (such as `mp4` or `webm`) on image assets is strictly blocked and returns an error.
 
 **Example:**
 Serve a high-efficiency WebP image at 75% quality:

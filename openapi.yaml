@@ -65,12 +65,14 @@ paths:
 
 
         **Supported File Types**:
-        - **Images**: JPEG, PNG, WEBP, GIF, SVG, AVIF, TIFF
-        - **Videos**: MP4, WEBM, MOV, AVI
-        - **Documents**: PDF
-        - **Audio**: MP3, WAV, OGG, AAC
+        - **Images** (Sharp Pipeline): JPEG, PNG, WEBP, GIF, TIFF, BMP
+        - **Videos** (FFmpeg Pipeline): MP4, MOV, WEBM
+        - **Raw Files** (Stored As-Is): PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ZIP, CSV, TXT, JSON, HEIC, HEIF
 
-        **Max File Size**: 100MB
+        **Max File Size**: 500MB
+
+        **Format Conversion Rules**:
+        Format conversion via `format` stays strictly within media families (Image → Image, Video → Video/HLS/GIF). Raw files cannot be format-transformed.
       tags:
         - Upload
       requestBody:

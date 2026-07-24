@@ -59,13 +59,16 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
 
 ## 3. Formatting & Codecs
 
-Convert videos to different web-optimized formats or codecs.
+Convert videos to different web-optimized formats or codecs. Supported source video formats include **MP4**, **MOV**, and **WebM**.
 
 | Parameter    | Valid Options                              | Description                                                                     | Try It             |
 | :----------- | :----------------------------------------- | :------------------------------------------------------------------------------ | :----------------- |
 | `format`     | `mp4`, `webm`, `mov`, `gif`, `hls`, `m3u8` | The output container format.                                                    | `?format=webm`     |
 | `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc`    | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
 | `fps`        | number (e.g., `24`, `30`, `60`)            | Output frame rate.                                                              | `?fps=30`          |
+
+> [!NOTE]
+> **Conversion Boundaries**: Video conversions must remain within video formats (`mp4`, `webm`, `mov`), HLS (`hls`, `m3u8`), or animated `gif`. Converting video files to static image formats (like `jpeg` or `webp`) is strictly blocked and returns an error.
 
 **Example: Converting Video to Animated GIF**
 You can easily create GIF previews of your videos. It is highly recommended to use `trimStart` and `trimEnd` alongside `fps` when generating GIFs to keep the file size manageable.

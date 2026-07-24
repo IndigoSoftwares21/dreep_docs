@@ -1,0 +1,31 @@
+---
+title: "Upload Document / File"
+sidebarTitle: "Upload File"
+description: "Upload raw documents, spreadsheets, archives, and non-transformable files."
+openapi: "POST /api/v1/upload"
+---
+
+Upload non-transformable files (documents, spreadsheets, presentations, archives, text files, and raw photos) directly to Dreep Storage up to **500MB**.
+
+### Supported Raw File Formats
+
+- **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)
+- **Text & Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)
+- **Archives**: ZIP (`.zip`)
+- **Raw Photos**: HEIC (`.heic`), HEIF (`.heif`)
+
+> [!IMPORTANT]
+> **No Transformation Support**: Raw files are stored and served directly as-is. Passing transformation parameters (like `format`, `width`, `height`, `quality`, or `fps`) when uploading raw files is not allowed and will be ignored or rejected.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@document.pdf' \
+  --form folderId=fol_987654321
+```
+
+</RequestExample>

@@ -1,0 +1,29 @@
+---
+title: "Upload Image"
+sidebarTitle: "Upload Image"
+description: "Upload an image asset with optional initial transformations."
+openapi: "POST /api/v1/upload"
+---
+
+Upload an image asset and optionally apply initial transformations (resizing, cropping, format conversion, compression) before storing.
+
+**Supported Image Inputs**: JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tif`, `.tiff`), BMP (`.bmp`).
+
+> [!NOTE]
+> **Allowed Conversion Target Formats**: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`. Requesting video output formats on image uploads is blocked.
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@photo.jpg' \
+  --form folderId=fol_987654321 \
+  --form format=webp \
+  --form width=1200 \
+  --form quality=80
+```
+
+</RequestExample>
