@@ -31,7 +31,7 @@ When specifying both `width` and `height`, you can control how the image fits wi
 
 **Example:**
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=400&height=400&fit=contain
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.jpg?width=400&height=400&fit=contain
 ```
 
 ---
@@ -51,7 +51,7 @@ Convert image types and compress them for optimal web delivery. Supported source
 **Example:**
 Serve a high-efficiency WebP image at 75% quality:
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.png?format=webp&quality=75
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.png?format=webp&quality=75
 ```
 
 ---
@@ -67,7 +67,7 @@ When using `fit=cover` or cropping, you can specify which part of the image shou
 **Example:**
 Crop a square thumbnail but prioritize the most "interesting" part of the image (often faces/high contrast areas):
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=256&height=256&fit=cover&gravity=attention
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.jpg?width=256&height=256&fit=cover&gravity=attention
 ```
 
 ---
@@ -87,7 +87,7 @@ Apply visual effects to the image.
 **Example:**
 Create a heavily blurred low-quality placeholder:
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=50&quality=10&blur=20
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.jpg?width=50&quality=10&blur=20
 ```
 
 ---
@@ -97,5 +97,5 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=50&quality=10&blur=20
 You can chain as many parameters as you need. Order does not matter.
 
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.jpg?width=1200&height=630&fit=cover&format=avif&quality=85&gravity=attention
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.jpg?width=1200&height=630&fit=cover&format=avif&quality=85&gravity=attention
 ```

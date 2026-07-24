@@ -34,7 +34,7 @@ Control output resolution, aspect ratio scaling, and visual quality.
 **Example:**
 Resize a video to 720p HD with aspect-ratio containment:
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?width=1280&height=720&fit=contain&quality=80
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?width=1280&height=720&fit=contain&quality=80
 ```
 
 ---
@@ -52,7 +52,7 @@ You can extract a specific portion of a video by defining start and end timestam
 Extract a 15-second clip starting at the 10-second mark:
 
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
 ```
 
 ---
@@ -74,7 +74,7 @@ Convert videos to different web-optimized formats or codecs. Supported source vi
 You can easily create GIF previews of your videos. It is highly recommended to use `trimStart` and `trimEnd` alongside `fps` when generating GIFs to keep the file size manageable.
 
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.gif?trimStart=0&trimEnd=3&fps=12
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.gif?trimStart=0&trimEnd=3&fps=12
 ```
 
 ---
@@ -88,7 +88,7 @@ This allows players to stream the video smoothly and buffer only what is needed.
 To generate an HLS stream, request the video with `format=hls` or append the `.m3u8` extension:
 
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.m3u8
 ```
 
 ### Implementing an HLS Player
@@ -100,7 +100,7 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 <video id="video" controls></video>
 <script>
   var video = document.getElementById("video");
-  var videoSrc = "https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8";
+  var videoSrc = "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.m3u8";
 
   if (Hls.isSupported()) {
     var hls = new Hls();
@@ -123,5 +123,5 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 You can chain multiple video parameters together in a single request:
 
 ```text
-https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?width=1280&height=720&trimStart=5&trimEnd=20&fps=30&quality=85
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?width=1280&height=720&trimStart=5&trimEnd=20&fps=30&quality=85
 ```

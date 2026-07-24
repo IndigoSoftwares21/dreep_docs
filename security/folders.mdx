@@ -14,7 +14,7 @@ There are three access control modes:
 - **Caching:** Public assets are aggressively cached on the Dreep CDN using `Cache-Control: public, max-age=31536000` (1 year).
 - **URLs:** Look like standard fetch endpoints without any extra parameters.
   ```text
-  https://api.dreep.cloud/v1/fetch/2f928a3f-1d2a-4a2b-8a8b-123456789abc.jpg
+  https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b-8a8b-123456789abc.jpg
   ```
 
 ## 2. Private Folders
@@ -33,7 +33,7 @@ There are three access control modes:
 - **Access:** When a user requests a file, your backend server generates a temporary signature using your project's **Signing Secret**. You then append the expiration timestamp (`exp`) and the signature (`sig`) to the URL.
 - **URLs:** Look like this:
   ```text
-  https://api.dreep.cloud/v1/fetch/2f928a...jpg?exp=1774118400&sig=a3f9e2b1...
+  https://cdn.dreep.cloud/api/v1/fetch/2f928a...jpg?exp=1774118400&sig=a3f9e2b1...
   ```
 
 ### Default Expiration (Timing)

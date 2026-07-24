@@ -5,7 +5,7 @@ description: 'How to safely access and serve media stored in private folders.'
 
 When an asset is uploaded to a **Private Folder**, it is completely locked down. Unlike Signed Folders, you cannot generate a public URL with an HMAC signature for private media. 
 
-Attempting to access a private asset via the public `api.dreep.cloud/v1/fetch/:id` endpoint will always result in a `401 Unauthorized` or `404 Not Found` response.
+Attempting to access a private asset via the public `cdn.dreep.cloud/api/v1/fetch/:id` endpoint will always result in a `401 Unauthorized` or `404 Not Found` response.
 
 ## Dashboard-Only Access
 
