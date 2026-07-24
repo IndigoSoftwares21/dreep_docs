@@ -91,55 +91,53 @@ paths:
                 format:
                   type: string
                   enum: [jpeg, png, webp, avif, gif, tiff, mp4, webm, mov, hls, m3u8]
-                  description: Re-encode the image or video to this format before storing.
-                  example: "webp"
+                  description: "[Image/Video] Re-encode the file to this format before storing."
                 width:
                   type: integer
-                  description: Resize to this width in pixels.
-                  example: 1200
+                  description: "[Image/Video] Resize to this width in pixels."
                 height:
                   type: integer
-                  description: Resize to this height in pixels.
+                  description: "[Image/Video] Resize to this height in pixels."
                 fit:
                   type: string
                   enum: [cover, contain, fill, inside, outside]
-                  description: How the media should fit `width`/`height`.
+                  description: "[Image/Video] How the media should fit `width`/`height`."
                 quality:
                   type: integer
-                  description: Output quality, 1-100.
+                  description: "[Image/Video] Output quality (1-100)."
                 fps:
                   type: integer
-                  description: Output frame rate for video files (e.g. 24, 30, 60).
+                  description: "[Video Only] Output frame rate for video files (e.g. 24, 30, 60)."
                 videoCodec:
                   type: string
                   enum: [libx264, libvpx-vp9, h264, hevc]
-                  description: Video encoding codec.
+                  description: "[Video Only] Video encoding codec."
                 trimStart:
                   type: number
-                  description: Trim start timestamp in seconds.
+                  description: "[Video Only] Trim start timestamp in seconds."
                 trimEnd:
                   type: number
-                  description: Trim end timestamp in seconds.
+                  description: "[Video Only] Trim end timestamp in seconds."
                 gravity:
                   type: string
                   enum: [north, northeast, east, southeast, south, southwest, west, northwest, center, attention, entropy]
-                  description: Crop anchor point when resizing images.
+                  description: "[Image Only] Crop anchor point when resizing images."
                 dpr:
                   type: number
-                  description: Device pixel ratio multiplier (max 3).
+                  description: "[Image Only] Device pixel ratio multiplier (max 3)."
                 rotate:
                   type: integer
                   enum: [90, 180, 270]
-                  description: Rotate by this many degrees clockwise.
+                  description: "[Image Only] Rotate by this many degrees clockwise."
                 bg:
                   type: string
-                  description: Hex color (without `#`) used to pad/fill, e.g. `ffffff`.
+                  description: "[Image Only] Hex color (without `#`) used to pad/fill, e.g. `ffffff`."
                 radius:
                   type: string
-                  description: Corner radius in pixels, or `max` for a full circle/pill.
+                  description: "[Image Only] Corner radius in pixels, or `max` for a full circle/pill."
                 p:
                   type: string
-                  description: A saved transform preset key to apply instead of individual fields.
+                  description: "[Image/Video] A saved transform preset key to apply instead of individual fields."
               required:
                 - file
       responses:
