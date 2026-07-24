@@ -1,6 +1,6 @@
 ---
-title: 'Video Transformations'
-description: 'Transcode, trim, and stream adaptive HLS video dynamically.'
+title: "Video Transformations"
+description: "Transcode, trim, and stream adaptive HLS video dynamically."
 ---
 
 Dreep uses a high-performance FFmpeg worker pipeline to transform video on the fly. You can combine query parameters to adjust dimensions, re-encode video formats, adjust frame rates, trim clips, or convert videos into animated GIFs.
@@ -11,8 +11,9 @@ Dreep uses a high-performance FFmpeg worker pipeline to transform video on the f
 - **Heavy Jobs (Async 202 Accepted):** Intensive operations (like full H.264/VP9 re-encodes, HLS segmentation, or GIF conversion) run asynchronously in the background.
 
 ### How Asynchronous Processing Works:
+
 1. **First Request:** You request a heavy video transformation (e.g., `?format=webm&fps=30`).
-2. **Dreep Responds:** Dreep queues the job and responds with an HTTP `202 Accepted` status code. 
+2. **Dreep Responds:** Dreep queues the job and responds with an HTTP `202 Accepted` status code.
    - If requested by a browser (`Accept: text/html`), Dreep serves a "Processing" page with a loading spinner that automatically refreshes.
    - If requested via an API client (`Accept: application/json`), Dreep returns `{ "error": "Asset is processing" }`.
 3. **Completion:** Once the background worker finishes, subsequent requests to that exact URL return `200 OK` and serve the transformed video file directly from cache.
@@ -23,12 +24,18 @@ Dreep uses a high-performance FFmpeg worker pipeline to transform video on the f
 
 Control output resolution, aspect ratio scaling, and visual quality.
 
-| Parameter | Valid Options | Description | Try It |
-| :--- | :--- | :--- | :--- |
-| `width` | number | Target width in pixels. | `?width=1280` |
-| `height` | number | Target height in pixels. | `?height=720` |
-| `fit` | `cover`, `contain`, `fill` | Scaling behavior when both `width` and `height` are set. | `?width=640&height=360&fit=contain` |
-| `quality` | 1 - 100 | Encoding quality / CRF scaling (1-100). Defaults to 80. | `?quality=75` |
+| Parameter | Valid Options              | Description                                              | Try It                              |
+| :-------- | :------------------------- | :------------------------------------------------------- | :---------------------------------- |
+| `width`   | number                     | Target width in pixels.                                  | `?width=1280`                       |
+| `height`  | number                     | Target height in pixels.                                 | `?height=720`                       |
+| `fit`     | `cover`, `contain`, `fill` | Scaling behavior when both `width` and `height` are set. | `?width=640&height=360&fit=contain` |
+| `quality` | 1 - 100                    | Encoding quality / CRF scaling (1-100). Defaults to 80.  | `?quality=75`                       |
+
+**Example:**
+Resize a video to 720p HD with aspect-ratio containment:
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?width=1280&height=720&fit=contain&quality=80
+```
 
 ---
 
@@ -36,13 +43,14 @@ Control output resolution, aspect ratio scaling, and visual quality.
 
 You can extract a specific portion of a video by defining start and end timestamps.
 
-| Parameter | Description | Try It |
-| :--- | :--- | :--- |
+| Parameter   | Description                 | Try It          |
+| :---------- | :-------------------------- | :-------------- |
 | `trimStart` | Start timestamp in seconds. | `?trimStart=10` |
-| `trimEnd` | End timestamp in seconds. | `?trimEnd=25` |
+| `trimEnd`   | End timestamp in seconds.   | `?trimEnd=25`   |
 
 **Example:**
 Extract a 15-second clip starting at the 10-second mark:
+
 ```text
 https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
 ```
@@ -53,11 +61,11 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
 
 Convert videos to different web-optimized formats or codecs.
 
-| Parameter | Valid Options | Description | Try It |
-| :--- | :--- | :--- | :--- |
-| `format` | `mp4`, `webm`, `mov`, `gif`, `hls`, `m3u8` | The output container format. | `?format=webm` |
-| `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc` | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
-| `fps` | number (e.g., `24`, `30`, `60`) | Output frame rate. | `?fps=30` |
+| Parameter    | Valid Options                              | Description                                                                     | Try It             |
+| :----------- | :----------------------------------------- | :------------------------------------------------------------------------------ | :----------------- |
+| `format`     | `mp4`, `webm`, `mov`, `gif`, `hls`, `m3u8` | The output container format.                                                    | `?format=webm`     |
+| `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc`    | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
+| `fps`        | number (e.g., `24`, `30`, `60`)            | Output frame rate.                                                              | `?fps=30`          |
 
 **Example: Converting Video to Animated GIF**
 You can easily create GIF previews of your videos. It is highly recommended to use `trimStart` and `trimEnd` alongside `fps` when generating GIFs to keep the file size manageable.
@@ -68,9 +76,9 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.gif?trimStart=0&trimEnd=3&fps=12
 
 ---
 
-## 3. HLS Adaptive Streaming
+## 4. HLS Adaptive Streaming
 
-For large videos, serving a single massive `.mp4` file is inefficient. Dreep supports **HTTP Live Streaming (HLS)**, which chunks your video into smaller `.ts` segments and generates an `.m3u8` manifest file. 
+For large videos, serving a single massive `.mp4` file is inefficient. Dreep supports **HTTP Live Streaming (HLS)**, which chunks your video into smaller `.ts` segments and generates an `.m3u8` manifest file.
 
 This allows players to stream the video smoothly and buffer only what is needed.
 
@@ -81,20 +89,21 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8
 ```
 
 ### Implementing an HLS Player
+
 Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safari does, but Chrome/Firefox do not). You must use a library like [HLS.js](https://github.com/video-dev/hls.js/) or [Video.js](https://videojs.com/).
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 <video id="video" controls></video>
 <script>
-  var video = document.getElementById('video');
-  var videoSrc = 'https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8';
-  
+  var video = document.getElementById("video");
+  var videoSrc = "https://api.dreep.cloud/v1/fetch/2f928a3f.m3u8";
+
   if (Hls.isSupported()) {
     var hls = new Hls();
     hls.loadSource(videoSrc);
     hls.attachMedia(video);
-  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+  } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
     // Safari fallback
     video.src = videoSrc;
   }
@@ -103,3 +112,13 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 
 > [!NOTE]
 > Like all video transformations, requesting `.m3u8` for the first time will trigger a `202 Accepted` response while the video is chunked and the manifest is generated.
+
+---
+
+## Combining Parameters
+
+You can chain multiple video parameters together in a single request:
+
+```text
+https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?width=1280&height=720&trimStart=5&trimEnd=20&fps=30&quality=85
+```

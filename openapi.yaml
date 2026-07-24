@@ -90,27 +90,40 @@ paths:
                   example: "fol_987654321"
                 format:
                   type: string
-                  enum: [jpeg, png, webp, avif, gif, tiff]
-                  description: Re-encode the image to this format before storing.
+                  enum: [jpeg, png, webp, avif, gif, tiff, mp4, webm, mov, hls, m3u8]
+                  description: Re-encode the image or video to this format before storing.
                   example: "webp"
                 width:
                   type: integer
-                  description: Resize to this width in pixels (max 4000).
+                  description: Resize to this width in pixels.
                   example: 1200
                 height:
                   type: integer
-                  description: Resize to this height in pixels (max 4000).
+                  description: Resize to this height in pixels.
                 fit:
                   type: string
                   enum: [cover, contain, fill, inside, outside]
-                  description: How the image should fit `width`/`height`.
+                  description: How the media should fit `width`/`height`.
                 quality:
                   type: integer
                   description: Output quality, 1-100.
+                fps:
+                  type: integer
+                  description: Output frame rate for video files (e.g. 24, 30, 60).
+                videoCodec:
+                  type: string
+                  enum: [libx264, libvpx-vp9, h264, hevc]
+                  description: Video encoding codec.
+                trimStart:
+                  type: number
+                  description: Trim start timestamp in seconds.
+                trimEnd:
+                  type: number
+                  description: Trim end timestamp in seconds.
                 gravity:
                   type: string
                   enum: [north, northeast, east, southeast, south, southwest, west, northwest, center, attention, entropy]
-                  description: Crop anchor point when resizing.
+                  description: Crop anchor point when resizing images.
                 dpr:
                   type: number
                   description: Device pixel ratio multiplier (max 3).
