@@ -3,22 +3,36 @@ title: 'Video Transformations'
 description: 'Transcode, trim, and stream adaptive HLS video dynamically.'
 ---
 
-Dreep uses an asynchronous FFmpeg worker pipeline to transform video on the fly. You can combine query parameters to re-encode video formats, adjust frame rates, trim clips, or even convert videos into animated GIFs.
+Dreep uses a high-performance FFmpeg worker pipeline to transform video on the fly. You can combine query parameters to adjust dimensions, re-encode video formats, adjust frame rates, trim clips, or convert videos into animated GIFs.
 
-## Asynchronous Processing (202 Accepted)
+## Inline vs. Asynchronous Processing
 
-Unlike image transformations (which are processed synchronously and block the request until finished), **video transformations are asynchronous**. Video encoding can take anywhere from a few seconds to several minutes depending on the file size and parameters.
+- **Fast Jobs (Inline 200 OK):** Lightweight operations like container remuxing (e.g. `MOV` → `MP4` stream copy) are processed quickly inline and served immediately with a `200 OK`.
+- **Heavy Jobs (Async 202 Accepted):** Intensive operations (like full H.264/VP9 re-encodes, HLS segmentation, or GIF conversion) run asynchronously in the background.
 
-### How it works:
-1. **First Request:** You request a new video transformation (e.g., `?format=webm&fps=30`).
-2. **Dreep Responds:** Dreep immediately queues the job and responds with an HTTP `202 Accepted` status code. 
-   - If the request was made by a browser (`Accept: text/html`), Dreep serves a user-friendly "Processing" HTML page with a loading spinner that automatically refreshes every few seconds.
-   - If the request was made via an API client (`Accept: application/json`), Dreep returns a JSON error: `{ "error": "Asset is processing" }`.
-3. **Completion:** Once the background FFmpeg worker finishes, the next request to that exact URL will return a `200 OK` and serve the fully encoded video file from the CDN edge cache.
+### How Asynchronous Processing Works:
+1. **First Request:** You request a heavy video transformation (e.g., `?format=webm&fps=30`).
+2. **Dreep Responds:** Dreep queues the job and responds with an HTTP `202 Accepted` status code. 
+   - If requested by a browser (`Accept: text/html`), Dreep serves a "Processing" page with a loading spinner that automatically refreshes.
+   - If requested via an API client (`Accept: application/json`), Dreep returns `{ "error": "Asset is processing" }`.
+3. **Completion:** Once the background worker finishes, subsequent requests to that exact URL return `200 OK` and serve the transformed video file directly from cache.
 
 ---
 
-## 1. Trimming & Clipping
+## 1. Dimensions, Fit & Quality
+
+Control output resolution, aspect ratio scaling, and visual quality.
+
+| Parameter | Valid Options | Description | Try It |
+| :--- | :--- | :--- | :--- |
+| `width` | number | Target width in pixels. | `?width=1280` |
+| `height` | number | Target height in pixels. | `?height=720` |
+| `fit` | `cover`, `contain`, `fill` | Scaling behavior when both `width` and `height` are set. | `?width=640&height=360&fit=contain` |
+| `quality` | 1 - 100 | Encoding quality / CRF scaling (1-100). Defaults to 80. | `?quality=75` |
+
+---
+
+## 2. Trimming & Clipping
 
 You can extract a specific portion of a video by defining start and end timestamps.
 
@@ -35,13 +49,13 @@ https://api.dreep.cloud/v1/fetch/2f928a3f.mp4?trimStart=10&trimEnd=25
 
 ---
 
-## 2. Formatting & Codecs
+## 3. Formatting & Codecs
 
 Convert videos to different web-optimized formats or codecs.
 
 | Parameter | Valid Options | Description | Try It |
 | :--- | :--- | :--- | :--- |
-| `format` | `mp4`, `webm`, `gif`, `hls`, `m3u8` | The output container format. | `?format=webm` |
+| `format` | `mp4`, `webm`, `mov`, `gif`, `hls`, `m3u8` | The output container format. | `?format=webm` |
 | `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc` | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
 | `fps` | number (e.g., `24`, `30`, `60`) | Output frame rate. | `?fps=30` |
 
