@@ -45,8 +45,9 @@ Convert image types and compress them for optimal web delivery. Supported source
 | `format` | The target image output format. Valid options: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`. | `?format=webp` |
 | `quality` | Compression quality (1-100). Default is 80. Lower values reduce file size. | `?quality=60` |
 
-> [!NOTE]
-> **Conversion Boundaries**: Image conversions must remain within the image family (`jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`). Requesting video output formats (such as `mp4` or `webm`) on image assets is strictly blocked and returns an error.
+<Note>
+**Conversion Boundaries**: Image conversions must remain within the image family (`jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`). Requesting video output formats (such as `mp4` or `webm`) on image assets is strictly blocked and returns an error.
+</Note>
 
 **Example:**
 Serve a high-efficiency WebP image at 75% quality:

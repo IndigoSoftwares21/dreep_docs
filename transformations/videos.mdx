@@ -67,8 +67,9 @@ Convert videos to different web-optimized formats or codecs. Supported source vi
 | `videoCodec` | `libx264`, `libvpx-vp9`, `h264`, `hevc`    | The internal video encoding codec. Defaults to web-optimized H.264 (`libx264`). | `?videoCodec=hevc` |
 | `fps`        | number (e.g., `24`, `30`, `60`)            | Output frame rate.                                                              | `?fps=30`          |
 
-> [!NOTE]
-> **Conversion Boundaries**: Video conversions must remain within video formats (`mp4`, `webm`, `mov`), HLS (`hls`, `m3u8`), or animated `gif`. Converting video files to static image formats (like `jpeg` or `webp`) is strictly blocked and returns an error.
+<Note>
+**Conversion Boundaries**: Video conversions must remain within video formats (`mp4`, `webm`, `mov`), HLS (`hls`, `m3u8`), or animated `gif`. Converting video files to static image formats (like `jpeg` or `webp`) is strictly blocked and returns an error.
+</Note>
 
 **Example: Converting Video to Animated GIF**
 You can easily create GIF previews of your videos. It is highly recommended to use `trimStart` and `trimEnd` alongside `fps` when generating GIFs to keep the file size manageable.
@@ -113,8 +114,9 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 </script>
 ```
 
-> [!NOTE]
-> Like all video transformations, requesting `.m3u8` for the first time will trigger a `202 Accepted` response while the video is chunked and the manifest is generated.
+<Note>
+Like all video transformations, requesting `.m3u8` for the first time will trigger a `202 Accepted` response while the video is chunked and the manifest is generated.
+</Note>
 
 ---
 
