@@ -211,11 +211,7 @@ paths:
         - **private** folders: not fetchable through this endpoint at all. Private
           assets can only be viewed by an authenticated project member from the
           Dreep dashboard.
-        - **signed** folders: not fetchable with a bare URL, but a time-limited
-          link (with `exp` and `sig` query parameters already attached) can be
-          generated from the Dreep dashboard and shared — anyone with that link
-          can fetch the asset until it expires. There's no way to generate `exp`/`sig`
-          yourself; only use links produced by the dashboard.
+        - **signed** folders: not fetchable with a bare URL, but accessible via temporary time-limited URLs generated using your project's Signing Secret (with `exp` and `sig` HMAC-SHA256 query parameters).
 
         A request for a private or signed asset without valid credentials returns `401`.
       tags:
@@ -224,31 +220,76 @@ paths:
         - name: mediaId
           in: path
           required: true
+          description: Media asset ID (e.g. `2f928a3f-1d2a-4a2b`) or ID with extension (`2f928a3f.jpg`).
           schema:
             type: string
           example: "med_123456789"
-        - name: transforms
+        - name: format
           in: query
-          description: JSON encoded string or preset ID to apply transforms before fetching.
+          description: Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`).
           schema:
             type: string
-          example: '{"width": 800, "height": 600, "crop": "fill"}'
-        - name: exp
+        - name: width
           in: query
-          description: >
-            Unix timestamp (seconds) a signed link expires at. Only present on links
-            generated for `signed` folders from the Dreep dashboard — omit for public assets.
+          description: Target width in pixels (max 4000).
           schema:
             type: integer
-          example: 1753999999
-        - name: sig
+            maximum: 4000
+        - name: height
           in: query
-          description: >
-            Signature authorizing the request until `exp`. Only present on links
-            generated for `signed` folders from the Dreep dashboard.
+          description: Target height in pixels (max 4000).
+          schema:
+            type: integer
+            maximum: 4000
+        - name: fit
+          in: query
+          description: Scaling fit (`cover`, `contain`, `fill`, `inside`, `outside`).
           schema:
             type: string
-          example: "3f2a9c1bd4e7f6a08c5b91d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e91d"
+            enum: [cover, contain, fill, inside, outside]
+        - name: quality
+          in: query
+          description: Quality (1-100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: fps
+          in: query
+          description: Video frame rate (1-120).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 120
+        - name: trimStart
+          in: query
+          description: Video trim start in seconds.
+          schema:
+            type: number
+            minimum: 0
+        - name: trimEnd
+          in: query
+          description: Video trim end in seconds.
+          schema:
+            type: number
+            minimum: 0
+        - name: p
+          in: query
+          description: Transform preset key to apply.
+          schema:
+            type: string
+        - name: exp
+          in: query
+          description: Unix timestamp (seconds) when signed URL expires. Required for signed folders.
+          schema:
+            type: integer
+          example: 1774118400
+        - name: sig
+          in: query
+          description: HMAC-SHA256 signature calculated over `assetId:expires` using your signing secret. Required for signed folders.
+          schema:
+            type: string
+          example: "a3f9e2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
       responses:
         '200':
           description: Media binary content
@@ -368,11 +409,19 @@ paths:
                 name:
                   type: string
                   example: "Marketing Assets"
+                parentId:
+                  type: string
+                  description: Optional ID of the parent folder.
+                  example: "fol_123456789"
                 accessControlType:
                   type: string
                   enum: [public, private, signed]
                   default: public
                   example: "signed"
+                defaultExpirySeconds:
+                  type: integer
+                  description: Default URL expiration in seconds for assets uploaded into signed folders.
+                  example: 3600
               required:
                 - name
       responses:

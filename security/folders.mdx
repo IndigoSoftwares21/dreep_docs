@@ -48,8 +48,8 @@ If a user generates an upload URL or requests a link to the file and does not ex
 You can programmatically create folders and assign their access control type using the API:
 
 ```bash Create Folder
-curl -X POST https://api.dreep.cloud/v1/folders \
-  -H "x-api-key: YOUR_PROJECT_API_KEY" \
+curl -X POST https://api.dreep.cloud/api/v1/folders \
+  -H "Authorization: Bearer drp_live_xxxxx" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Premium Course Videos",
