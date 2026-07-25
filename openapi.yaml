@@ -226,7 +226,7 @@ paths:
           example: "med_123456789"
         - name: format
           in: query
-          description: Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`).
+          description: "Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`)."
           schema:
             type: string
         - name: width
