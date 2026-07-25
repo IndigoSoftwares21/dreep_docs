@@ -75,10 +75,7 @@
             "group": "Upload",
             "icon": "cloud-arrow-up",
             "pages": [
-              "api-reference/upload/upload-media",
-              "api-reference/upload/upload-image",
-              "api-reference/upload/upload-video",
-              "api-reference/upload/upload-file"
+              "api-reference/upload/upload-media"
             ]
           },
           {

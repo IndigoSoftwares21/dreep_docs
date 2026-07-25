@@ -1,4 +1,82 @@
 ---
 title: "Upload Media"
+description: "Upload images, videos, or raw files in a single multipart request, with optional transformations."
 openapi: "POST /api/v1/upload"
 ---
+
+The upload endpoint accepts **images, videos, and raw files** through one multipart request. Dreep detects the file type and applies the relevant processing — transforming images and videos on the fly, or storing raw files as-is. Optional transformation parameters are ignored or rejected when they don't apply to the uploaded file type.
+
+## Images
+
+Apply resizing, cropping, format conversion, and compression before storing.
+
+**Supported inputs**: JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tif`, `.tiff`), BMP (`.bmp`).
+
+**Applicable parameters**: `format`, `width`, `height`, `fit`, `quality`.
+
+<Note>
+**Allowed target formats**: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`. Requesting video output formats on an image upload is blocked.
+</Note>
+
+## Videos
+
+Apply trimming, frame-rate adjustment, and container re-encoding.
+
+**Supported inputs**: MP4 (`.mp4`), MOV (`.mov`), WebM (`.webm`).
+
+**Applicable parameters**: `format`, `width`, `height`, `fit`, `quality`, `fps`.
+
+<Note>
+**Allowed target formats**: `mp4`, `webm`, `mov`, `hls` (`.m3u8`), `gif` (animated clip). Requesting static image target formats (e.g. `jpeg` or `webp`) on a video upload is blocked.
+</Note>
+
+## Raw Files
+
+Store non-transformable files directly, up to **500MB**.
+
+- **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)
+- **Text & Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)
+- **Archives**: ZIP (`.zip`)
+- **Raw Photos**: HEIC (`.heic`), HEIF (`.heif`)
+
+<Warning>
+Raw files are stored and served exactly as uploaded. Passing transformation parameters (`format`, `width`, `height`, `quality`, `fps`) with a raw file is not allowed and will be ignored or rejected.
+</Warning>
+
+<RequestExample>
+
+```bash Image
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@photo.jpg' \
+  --form folderId=fol_987654321 \
+  --form format=webp \
+  --form width=1200 \
+  --form quality=80
+```
+
+```bash Video
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@clip.mp4' \
+  --form folderId=fol_987654321 \
+  --form format=mp4 \
+  --form trimStart=0 \
+  --form trimEnd=15 \
+  --form fps=30
+```
+
+```bash Raw File
+curl --request POST \
+  --url https://api.dreep.cloud/api/v1/upload \
+  --header 'Authorization: Bearer drp_live_xxxxx' \
+  --header 'Content-Type: multipart/form-data' \
+  --form file='@document.pdf' \
+  --form folderId=fol_987654321
+```
+
+</RequestExample>
