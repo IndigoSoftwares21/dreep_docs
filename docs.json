@@ -46,7 +46,8 @@
             "icon": "book-open",
             "pages": [
               "guides/uploading",
-              "guides/presets"
+              "guides/presets",
+              "guides/byob-storage"
             ]
           },
           {
