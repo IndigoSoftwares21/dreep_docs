@@ -4,7 +4,8 @@ info:
   description: The universal media processing and storage API.
   version: 1.0.0
 servers:
-  - url: https://api.dreep.cloud
+  # - url: https://api.dreep.cloud
+  - url: http://localhost:6969
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -16,25 +17,25 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: Not Found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
     InternalError:
       description: Internal Server Error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
   schemas:
     Error:
       type: object
@@ -54,6 +55,36 @@ paths:
   /api/v1/upload:
     post:
       summary: Upload Media
+      x-codeSamples:
+        - lang: curl
+          label: Image Upload (Resize)
+          source: |
+            curl --request POST \
+              --url https://api.dreep.cloud/api/v1/upload \
+              --header 'Authorization: Bearer <API_KEY>' \
+              --header 'Content-Type: multipart/form-data' \
+              --form file='@/path/to/image.jpg' \
+              --form width=800 \
+              --form format=webp
+        - lang: curl
+          label: Video Upload (Trim)
+          source: |
+            curl --request POST \
+              --url https://api.dreep.cloud/api/v1/upload \
+              --header 'Authorization: Bearer <API_KEY>' \
+              --header 'Content-Type: multipart/form-data' \
+              --form file='@/path/to/video.mp4' \
+              --form trimStart=10.5 \
+              --form trimEnd=20 \
+              --form videoCodec=h264
+        - lang: curl
+          label: Basic File Upload
+          source: |
+            curl --request POST \
+              --url https://api.dreep.cloud/api/v1/upload \
+              --header 'Authorization: Bearer <API_KEY>' \
+              --header 'Content-Type: multipart/form-data' \
+              --form file='@/path/to/file.pdf'
       description: >
         Upload a media file. You can optionally apply an initial transform to
         images by passing any of the transform fields below as separate
@@ -92,7 +123,20 @@ paths:
                   example: "fol_987654321"
                 format:
                   type: string
-                  enum: [jpeg, png, webp, avif, gif, tiff, mp4, webm, mov, hls, m3u8]
+                  enum:
+                    [
+                      jpeg,
+                      png,
+                      webp,
+                      avif,
+                      gif,
+                      tiff,
+                      mp4,
+                      webm,
+                      mov,
+                      hls,
+                      m3u8,
+                    ]
                   description: "[Image/Video] Re-encode the file to this format before storing."
                 width:
                   type: integer
@@ -122,7 +166,20 @@ paths:
                   description: "[Video Only] Trim end timestamp in seconds."
                 gravity:
                   type: string
-                  enum: [north, northeast, east, southeast, south, southwest, west, northwest, center, attention, entropy]
+                  enum:
+                    [
+                      north,
+                      northeast,
+                      east,
+                      southeast,
+                      south,
+                      southwest,
+                      west,
+                      northwest,
+                      center,
+                      attention,
+                      entropy,
+                    ]
                   description: "[Image Only] Crop anchor point when resizing images."
                 dpr:
                   type: number
@@ -143,7 +200,7 @@ paths:
               required:
                 - file
       responses:
-        '200':
+        "200":
           description: Media uploaded successfully
           content:
             application/json:
@@ -186,18 +243,18 @@ paths:
                   createdAt:
                     type: string
                     format: date-time
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '402':
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
           description: Plan's transformation limit reached
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          $ref: '#/components/responses/InternalError'
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/v1/fetch/{mediaId}:
     get:
       summary: Fetch Media
@@ -211,7 +268,7 @@ paths:
         - **private** folders: not fetchable through this endpoint at all. Private
           assets can only be viewed by an authenticated project member from the
           Dreep dashboard.
-        - **signed** folders: not fetchable with a bare URL, but accessible via temporary time-limited URLs generated using your project's Signing Secret (with `exp` and `sig` HMAC-SHA256 query parameters).
+        - **signed** folders: not fetchable with a bare URL, but accessible via temporary time-limited URLs generated using your project's URL Signing Secret (with `exp` and `sig` HMAC-SHA256 query parameters).
 
         A request for a private or signed asset without valid credentials returns `401`.
       tags:
@@ -286,24 +343,24 @@ paths:
           example: 1774118400
         - name: sig
           in: query
-          description: HMAC-SHA256 signature calculated over `assetId:expires` using your signing secret. Required for signed folders.
+          description: HMAC-SHA256 signature calculated over `assetId:expires` using your project's URL Signing Secret. Required for signed folders.
           schema:
             type: string
           example: "a3f9e2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
       responses:
-        '200':
+        "200":
           description: Media binary content
           content:
             image/*:
               schema:
                 type: string
                 format: binary
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/v1/media:
     get:
       summary: List Media Assets
@@ -321,7 +378,7 @@ paths:
             type: integer
             default: 20
       responses:
-        '200':
+        "200":
           description: A list of media assets
           content:
             application/json:
@@ -336,8 +393,8 @@ paths:
                       type: string
                     url:
                       type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/media/{mediaId}:
     delete:
       summary: Delete Media Asset
@@ -350,7 +407,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Asset deleted successfully
           content:
             application/json:
@@ -360,17 +417,17 @@ paths:
                   success:
                     type: boolean
                     example: true
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/v1/folders:
     get:
       summary: List Folders
       tags:
         - Folders
       responses:
-        '200':
+        "200":
           description: A list of folders
           content:
             application/json:
@@ -383,8 +440,8 @@ paths:
                       type: string
                     name:
                       type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       summary: Create Folder
       description: >
@@ -425,7 +482,7 @@ paths:
               required:
                 - name
       responses:
-        '200':
+        "200":
           description: Folder created
           content:
             application/json:
@@ -436,17 +493,17 @@ paths:
                     type: string
                   name:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/presets:
     get:
       summary: List Presets
       tags:
         - Presets
       responses:
-        '200':
+        "200":
           description: A list of transform presets
           content:
             application/json:
@@ -459,8 +516,8 @@ paths:
                       type: string
                     name:
                       type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       summary: Create Preset
       tags:
@@ -479,12 +536,12 @@ paths:
                   type: array
                   items:
                     type: object
-                  example: [{"action": "resize", "width": 200, "height": 200}]
+                  example: [{ "action": "resize", "width": 200, "height": 200 }]
               required:
                 - name
                 - operations
       responses:
-        '200':
+        "200":
           description: Preset created
           content:
             application/json:
@@ -495,10 +552,10 @@ paths:
                     type: string
                   name:
                     type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/presets/{id}:
     delete:
       summary: Delete Preset
@@ -511,7 +568,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Preset deleted
           content:
             application/json:
@@ -521,10 +578,10 @@ paths:
                   success:
                     type: boolean
                     example: true
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /api/v1/usage:
     get:
       summary: Get Usage Limits
@@ -532,7 +589,7 @@ paths:
       tags:
         - Usage & Billing
       responses:
-        '200':
+        "200":
           description: Usage limits retrieved successfully
           content:
             application/json:
@@ -561,5 +618,5 @@ paths:
                         type: integer
                       transformations:
                         type: integer
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
