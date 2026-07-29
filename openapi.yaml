@@ -148,6 +148,18 @@ paths:
                   type: string
                   enum: [cover, contain, fill, inside, outside]
                   description: "[Image/Video] How the media should fit `width`/`height`."
+                crop:
+                  type: object
+                  description: "[Image] Explicitly crop the image using left, top, width, and height coordinates."
+                  properties:
+                    left:
+                      type: integer
+                    top:
+                      type: integer
+                    width:
+                      type: integer
+                    height:
+                      type: integer
                 quality:
                   type: integer
                   description: "[Image/Video] Output quality (1-100)."
@@ -283,7 +295,7 @@ paths:
           example: "med_123456789"
         - name: format
           in: query
-          description: "Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`)."
+          description: "Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`)."
           schema:
             type: string
         - name: width
@@ -304,6 +316,11 @@ paths:
           schema:
             type: string
             enum: [cover, contain, fill, inside, outside]
+        - name: crop
+          in: query
+          description: Explicitly crop the image using a comma-separated string `left,top,width,height` (e.g. `10,20,100,100`).
+          schema:
+            type: string
         - name: quality
           in: query
           description: Quality (1-100).
