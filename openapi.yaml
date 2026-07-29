@@ -295,7 +295,7 @@ paths:
           example: "med_123456789"
         - name: format
           in: query
-          description: "Target output format (image: `jpeg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`)."
+          description: "Target output format (image: `jpeg`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`; audio: `mp3`, `wav`, `aac`). Requesting an image format on a video asset will extract a thumbnail."
           schema:
             type: string
         - name: width
@@ -344,6 +344,12 @@ paths:
         - name: trimEnd
           in: query
           description: Video trim end in seconds.
+          schema:
+            type: number
+            minimum: 0
+        - name: time
+          in: query
+          description: Specific timestamp in seconds for pulling a snapshot or thumbnail.
           schema:
             type: number
             minimum: 0

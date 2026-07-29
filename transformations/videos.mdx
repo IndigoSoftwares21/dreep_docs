@@ -33,6 +33,7 @@ Control output resolution, aspect ratio scaling, and visual quality.
 
 **Example:**
 Resize a video to 720p HD with aspect-ratio containment:
+
 ```text
 https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?width=1280&height=720&fit=contain&quality=80
 ```
@@ -68,7 +69,10 @@ Convert videos to different web-optimized formats or codecs. Supported source vi
 | `fps`        | number (e.g., `24`, `30`, `60`)            | Output frame rate.                                                              | `?fps=30`          |
 
 <Note>
-**Conversion Boundaries**: Video conversions must remain within video formats (`mp4`, `webm`, `mov`), HLS (`hls`, `m3u8`), or animated `gif`. Converting video files to static image formats (like `jpeg` or `webp`) is strictly blocked and returns an error.
+  **Conversion Boundaries**: Video conversions must remain within video formats
+  (`mp4`, `webm`, `mov`), HLS (`hls`, `m3u8`), or animated `gif`. If you request
+  an image format (like `jpeg` or `webp`) on a video asset, Dreep will extract a
+  static thumbnail frame.
 </Note>
 
 **Example: Converting Video to Animated GIF**
@@ -115,8 +119,62 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 ```
 
 <Note>
-Like all video transformations, requesting `.m3u8` for the first time will trigger a `202 Accepted` response while the video is chunked and the manifest is generated.
+  Like all video transformations, requesting `.m3u8` for the first time will
+  trigger a `202 Accepted` response while the video is chunked and the manifest
+  is generated.
 </Note>
+
+---
+
+## 4. Audio & Thumbnail Extraction
+
+Because they do not require a full video re-encode, Dreep can extract thumbnails and audio tracks from your video assets at lightning speeds (often returning in under 200ms).
+
+### Extracting Audio
+
+To strip the video track and return just the audio, simply request one of our supported audio formats (`mp3`, `wav`, or `aac`).
+
+**Supported Audio Formats:**
+
+- `mp3`: Highly compressed, great for general web usage.
+- `wav`: Uncompressed lossless audio for professional use.
+- `aac`: High-quality compressed audio format.
+
+**Example: Extract MP3 Audio**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=mp3
+```
+
+**Example: Extract WAV Audio**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=wav
+```
+
+### Extracting Thumbnails
+
+To generate a static thumbnail image from your video, simply request a supported image format (`jpeg`, `jpg`, `png`, or `webp`) and use the `time` parameter to specify the exact timestamp (in seconds) to capture. If `time` exceeds the video's actual duration, Dreep intelligently clamps it to the final frame.
+
+**Supported Thumbnail Formats:**
+
+- `jpeg` or `jpg`: Standard compressed image format, highly compatible.
+- `webp`: Modern web format with superior compression.
+- `png`: Lossless image format, good for high fidelity.
+
+**Example: Extract a JPEG Thumbnail at 5 seconds**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=jpeg&time=5
+```
+
+_(You can also use `.jpg` or `format=jpg` interchangeably with `jpeg`!)_
+
+**Example: Extract a WebP Thumbnail at 15 seconds**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=webp&time=15
+```
 
 ---
 
