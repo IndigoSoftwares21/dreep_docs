@@ -1,0 +1,78 @@
+---
+title: "Bring Your Own Bucket (BYOB)"
+description: "Connect your custom AWS S3, Cloudflare R2, Wasabi, or MinIO bucket to store project assets with zero lock-in."
+icon: "database"
+---
+
+# Bring Your Own Bucket (BYOB)
+
+Dreep allows project owners on **Starter** or **Pro** plans to connect their own S3-compatible cloud storage bucket. Once connected, all raw uploads, processed image variants, and HLS video transcode segments for that project are stored directly in your own cloud infrastructure.
+
+<Note>
+**Zero Storage Limits:** BYOB projects store files on your own cloud bucket. Dreep does not meter or charge for your storage byte volume.
+</Note>
+
+---
+
+## Supported Providers
+
+Dreep supports any S3-compatible object storage provider:
+- **AWS S3**
+- **Cloudflare R2**
+- **Wasabi**
+- **DigitalOcean Spaces**
+- **MinIO** (Self-hosted)
+- **Generic S3 Interop** (GCP S3 API, Backblaze B2 S3 API)
+
+---
+
+## Required Bucket Permissions
+
+Your IAM user or access key must have read, write, and delete permissions on the target bucket.
+
+### Recommended AWS IAM Policy JSON
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Connecting Your Bucket in the Dashboard
+
+1. Navigate to **Settings** > **Storage & BYOB** in your Dreep Dashboard.
+2. Click **Connect Your Own Bucket (BYOB)**.
+3. Select your provider (AWS S3, Cloudflare R2, Wasabi, etc.).
+4. Enter your **Bucket Name**, **S3 Endpoint URL**, **Access Key ID**, and **Secret Access Key**.
+5. Click **Test Connection** to verify permissions.
+6. Click **Connect Bucket**.
+
+<Warning>
+**Bucket Immutability Notice:** Once connected, a BYOB bucket cannot be modified mid-project to prevent breaking existing media asset keys and presigned URLs.
+</Warning>
+
+---
+
+## Access Control & Security
+
+All Dreep access control rules (`public`, `private`, and `signed` folders) work seamlessly with BYOB:
+- **Public Folders:** Served via Dreep's global proxy CDN or your custom CDN domain.
+- **Private Folders:** Retain 100% security behind authenticated session tokens.
+- **Signed Folders:** Time-limited HMAC signed URLs (`?exp=...&sig=...`) stream object bytes securely from your BYOB bucket.
