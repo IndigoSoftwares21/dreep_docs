@@ -4,8 +4,6 @@ info:
   description: The universal media processing and storage API.
   version: 1.0.0
 servers:
-  - url: http://localhost:6969
-    description: Local development
   - url: https://api.dreep.cloud
     description: Production
 components:
