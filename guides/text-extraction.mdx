@@ -48,3 +48,34 @@ To solve this, Dreep **caches the result of every successful text extraction** d
 
 **Billing implications:**
 You are only billed for the **first** extraction of a given document. This deducts `1` from your plan's monthly **OCR Pages** allowance. Fetching the cached result is free and only incurs standard bandwidth costs.
+
+## Drawing Bounding Boxes in your UI
+
+If you need to highlight extracted text on the screen (for example, allowing a user to click on specific lines or words in a document), you'll need the exact coordinates of where that text was found. 
+
+Since the standard `fetch` API (`.txt`) only returns plain text, you should use the [Upload & Extract Text API](/api-reference/ocr/upload-extract-text) endpoint and set `includeBlocks=true`.
+
+This will return an array of `blocks`, each containing a `Geometry.BoundingBox` with `Top`, `Left`, `Width`, and `Height` values.
+
+**Important**: These values are returned as ratios (between `0.0` and `1.0`) relative to the overall image size, rather than absolute pixel values. This makes it trivial to draw bounding boxes on the frontend regardless of how the image is scaled in your UI!
+
+To convert them to screen pixels, simply multiply by your DOM element's rendered width and height:
+
+```javascript
+const imageEl = document.getElementById("receipt-image");
+const renderedWidth = imageEl.clientWidth;
+const renderedHeight = imageEl.clientHeight;
+
+// Box coordinates from the API
+const box = block.Geometry.BoundingBox;
+
+const div = document.createElement("div");
+div.style.position = "absolute";
+div.style.left = `${box.Left * renderedWidth}px`;
+div.style.top = `${box.Top * renderedHeight}px`;
+div.style.width = `${box.Width * renderedWidth}px`;
+div.style.height = `${box.Height * renderedHeight}px`;
+div.style.border = "2px solid red";
+
+document.getElementById("image-container").appendChild(div);
+```
