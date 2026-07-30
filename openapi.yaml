@@ -4,8 +4,10 @@ info:
   description: The universal media processing and storage API.
   version: 1.0.0
 servers:
-  # - url: https://api.dreep.cloud
   - url: http://localhost:6969
+    description: Local development
+  - url: https://api.dreep.cloud
+    description: Production
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -96,14 +98,14 @@ paths:
 
 
         **Supported File Types**:
-        - **Images** (Sharp Pipeline): JPEG, PNG, WEBP, GIF, TIFF, BMP
+        - **Images** (Sharp Pipeline): JPEG, PNG, WEBP, GIF, TIFF, BMP, HEIC, HEIF, SVG
         - **Videos** (FFmpeg Pipeline): MP4, MOV, WEBM
-        - **Raw Files** (Stored As-Is): PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ZIP, CSV, TXT, JSON, HEIC, HEIF
+        - **Raw Files** (Stored As-Is): PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ZIP, CSV, TXT, JSON
 
         **Max File Size**: 500MB
 
         **Format Conversion Rules**:
-        Format conversion via `format` stays strictly within media families (Image → Image, Video → Video/HLS/GIF). Raw files cannot be format-transformed.
+        Format conversion via `format` allows you to convert FROM any supported image format (including HEIC, HEIF, and SVG) TO any standard web format (like JPEG, PNG, WEBP). Conversion stays strictly within media families (Image → Image, Video → Video/HLS/GIF). Raw files cannot be format-transformed.
       tags:
         - Upload
       requestBody:
@@ -267,6 +269,71 @@ paths:
                 $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/ocr:
+    post:
+      summary: Upload & Extract Text
+      description: >
+        Upload an image or PDF document and instantly extract its text using Optical Character Recognition (OCR).
+        If `folderId` is provided, the extracted text will also be saved to your Dreep storage in that folder.
+      tags:
+        - Media
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to extract text from (Image or PDF).
+                folderId:
+                  type: string
+                  description: Optional folder ID to save the extracted text file into.
+                includeBlocks:
+                  type: string
+                  enum:
+                    - "true"
+                    - "false"
+                  default: "false"
+                  description: >
+                    Set to `true` to include the raw Textract `blocks` array (per-line and
+                    per-word geometry) in the response. Omitted or `false` returns the
+                    extracted text only, which keeps the response small.
+      responses:
+        "200":
+          description: Extraction successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                    description: The fully concatenated plain text.
+                  blocks:
+                    type: array
+                    description: >
+                      Raw AWS Textract block objects (lines, words) with bounding boxes.
+                      Only present when the request sets `includeBlocks=true`.
+                    items:
+                      type: object
+                  savedAsset:
+                    type: object
+                    nullable: true
+                    description: Details of the saved text file, if `folderId` was provided.
+                    properties:
+                      id:
+                        type: string
+                      storageKey:
+                        type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /api/v1/fetch/{mediaId}:
     get:
       summary: Fetch Media
@@ -295,7 +362,7 @@ paths:
           example: "med_123456789"
         - name: format
           in: query
-          description: "Target output format (image: `jpeg`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`; audio: `mp3`, `wav`, `aac`). Requesting an image format on a video asset will extract a thumbnail."
+          description: "Target output format (image: `jpeg`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`; audio: `mp3`, `wav`, `aac`; text extraction: `txt`). Requesting an image format on a video asset extracts a thumbnail. Requesting `txt` on an image or PDF asset runs Optical Character Recognition (OCR) to extract plain text."
           schema:
             type: string
         - name: width
@@ -378,6 +445,49 @@ paths:
               schema:
                 type: string
                 format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/fetch/{mediaId}.txt:
+    get:
+      summary: Extract Text (OCR)
+      description: >
+        Extract text from an uploaded image or PDF document instantly using Optical Character Recognition (OCR).
+
+        This is a convenience alias for `GET /api/v1/fetch/{mediaId}?format=txt`. The extracted text is cached in your storage bucket, making subsequent reads lightning fast and free.
+      tags:
+        - Media
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          description: Media asset ID (e.g. `2f928a3f-1d2a-4a2b`).
+          schema:
+            type: string
+          example: "med_123456789"
+        - name: exp
+          in: query
+          description: Unix timestamp (seconds) when signed URL expires. Required for signed folders.
+          schema:
+            type: integer
+          example: 1774118400
+        - name: sig
+          in: query
+          description: HMAC-SHA256 signature calculated over `assetId:expires` using your project's URL Signing Secret. Required for signed folders.
+          schema:
+            type: string
+          example: "a3f9e2b1c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1"
+      responses:
+        "200":
+          description: Extracted text
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Invoice #1234\nTotal: $50.00"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":

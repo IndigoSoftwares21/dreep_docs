@@ -1,0 +1,50 @@
+---
+title: "Text Extraction (OCR)"
+description: "Extract text from images and PDF documents instantly using Dreep's HTTP API"
+icon: "file-signature"
+---
+
+Dreep has built-in Optical Character Recognition (OCR) powered by AWS Textract, allowing you to instantly extract plain text from uploaded images (like receipts) and documents (like PDFs). 
+
+This extraction integrates directly with Dreep's standard Asset Delivery pipeline, which means that any text you extract automatically benefits from:
+* Signed URLs (for private folder access)
+* Edge Caching (extracted text is cached forever in your connected storage)
+
+## How to extract text
+
+Text extraction happens on-the-fly when you fetch an asset. To extract text from an uploaded image or PDF, simply fetch the file using the `.txt` extension or the `format=txt` query parameter.
+
+### Using the URL extension (Recommended)
+
+When you append `.txt` to the end of any valid Dreep `fetch` URL, the system will automatically run OCR against the source file and return raw `text/plain`.
+
+```bash
+# Extract text from an uploaded file
+curl -X GET "https://api.dreep.cloud/fetch/c837890f-93d3-4632-902f-b4b9fbdb891d.txt"
+```
+
+### Using the Query Parameter
+
+If you prefer using standard extensions for the URL, you can pass `?format=txt`.
+
+```bash
+# Extract text using query parameter
+curl -X GET "https://api.dreep.cloud/fetch/c837890f-93d3-4632-902f-b4b9fbdb891d.pdf?format=txt"
+```
+
+## Supported Formats
+
+Dreep's OCR engine currently supports extracting text from:
+- **Images:** `.jpg`, `.jpeg`, `.png`
+- **Documents:** `.pdf` (Note: synchronous extraction supports single-page PDFs or the first page of multi-page PDFs).
+
+## Caching and Billing
+
+The OCR engine is incredibly powerful, but running machine learning models on every request is slow and expensive. 
+
+To solve this, Dreep **caches the result of every successful text extraction** directly into your project's storage bucket (under a derived key). 
+- The first request to `.txt` takes roughly 1-2 seconds as the engine processes the document. 
+- All subsequent requests take less than ~50ms, as Dreep streams the plain text file straight out of storage.
+
+**Billing implications:**
+You are only billed for the **first** extraction of a given document. This deducts `1` from your plan's monthly **OCR Pages** allowance. Fetching the cached result is free and only incurs standard bandwidth costs.

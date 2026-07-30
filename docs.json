@@ -8,17 +8,13 @@
     "dark": "#059669"
   },
   "favicon": "/favicon.ico",
-  "openapi": "openapi.yaml",
-  "tabs": [
-    {
-      "name": "Guides",
-      "url": "index"
-    },
-    {
-      "name": "API Reference",
-      "url": "api-reference/upload/upload-media"
+  "api": {
+    "openapi": "openapi.yaml",
+    "playground": {
+      "display": "interactive",
+      "proxy": false
     }
-  ],
+  },
   "navigation": {
     "tabs": [
       {
@@ -47,7 +43,8 @@
             "pages": [
               "guides/uploading",
               "guides/presets",
-              "guides/byob-storage"
+              "guides/byob-storage",
+              "guides/text-extraction"
             ]
           },
           {
@@ -77,6 +74,14 @@
             "icon": "cloud-arrow-up",
             "pages": [
               "api-reference/upload/upload-media"
+            ]
+          },
+          {
+            "group": "OCR",
+            "icon": "text-size",
+            "pages": [
+              "api-reference/ocr/upload-extract-text",
+              "api-reference/ocr/extract-text"
             ]
           },
           {

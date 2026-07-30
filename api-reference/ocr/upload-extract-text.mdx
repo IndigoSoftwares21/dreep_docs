@@ -1,0 +1,50 @@
+---
+title: "Upload & Extract Text"
+openapi: "POST /api/v1/ocr"
+---
+
+## Response size
+
+By default the response contains the extracted `text` only:
+
+```bash
+curl -X POST "https://api.dreep.cloud/api/v1/ocr" \
+  -H "Authorization: Bearer sk_live_xxxxx" \
+  -F "file=@receipt.jpg"
+```
+
+```json
+{
+  "text": "ACME STORE\nTotal  $42.00",
+  "savedAsset": null
+}
+```
+
+Pass `includeBlocks=true` when you need the per-line and per-word geometry — for example to
+draw bounding boxes over the source image:
+
+```bash
+curl -X POST "https://api.dreep.cloud/api/v1/ocr" \
+  -H "Authorization: Bearer sk_live_xxxxx" \
+  -F "file=@receipt.jpg" \
+  -F "includeBlocks=true"
+```
+
+```json
+{
+  "text": "ACME STORE\nTotal  $42.00",
+  "blocks": [
+    {
+      "BlockType": "LINE",
+      "Text": "ACME STORE",
+      "Geometry": { "BoundingBox": { "Width": 0.31, "Height": 0.04, "Left": 0.12, "Top": 0.08 } }
+    }
+  ],
+  "savedAsset": null
+}
+```
+
+<Note>
+  Textract emits one block per page, line, and word, each with its own geometry, so `blocks` is
+  typically far larger than the text itself. Leave it off unless you use the coordinates.
+</Note>

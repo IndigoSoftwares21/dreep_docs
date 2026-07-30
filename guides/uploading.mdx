@@ -82,9 +82,9 @@ Dreep supports direct uploads up to **500MB** per file. Uploaded files are categ
 
 | Asset Kind | Supported Formats / Extensions | Pipeline Behavior |
 | :--- | :--- | :--- |
-| **Image** | JPEG (`.jpg`, `.jpeg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tif`, `.tiff`), BMP (`.bmp`) | Processed via Sharp. Supports resizing, crop/fit, format conversion, and initial transforms. |
-| **Video** | MP4 (`.mp4`), MOV (`.mov`), WebM (`.webm`) | Processed via FFmpeg worker. Supports trimming, FPS adjustment, HLS streaming, and video container conversion. |
-| **Raw File** | **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)<br/>**Text/Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)<br/>**Archives**: ZIP (`.zip`)<br/>**Raw Photos**: HEIC (`.heic`), HEIF (`.heif`) | Stored and served directly as-is. Transformations are not allowed. |
+| **Image** | JPEG (`.jpeg`, `.jpg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tiff`), BMP (`.bmp`), SVG (`.svg`), HEIC (`.heic`), HEIF (`.heif`) | Format conversion, Resizing, Compression |
+| **Video** | MP4 (`.mp4`), MOV (`.mov`), WEBM (`.webm`) | Format conversion, Trimming, HLS Streaming |
+| **Raw File** | **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)<br/>**Text/Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)<br/>**Archives**: ZIP (`.zip`) | Stored and served directly as-is. Transformations are not allowed. |
 
 ---
 
@@ -95,5 +95,5 @@ When requesting format conversions during upload or delivery (via the `format` p
 - **Image → Image**: Images can be converted to `jpeg`, `png`, `webp`, `avif`, `gif`, or `tiff`.
 - **Video → Video**: Videos can be converted to `mp4`, `webm`, `mov`, `hls` (`.m3u8`), or `gif` (animated GIF clip).
 - **Cross-Family Restrictions**: Converting an Image to a Video format (or Video to an Image format other than `gif`) is blocked and returns an `Unsupported format conversion` error.
-- **Raw Files**: Non-transformable raw files (PDF, DOCX, ZIP, HEIC/HEIF) cannot be converted to any target format.
+- **Raw Files**: Non-transformable raw files (PDF, DOCX, ZIP) cannot be converted to any target format.
 

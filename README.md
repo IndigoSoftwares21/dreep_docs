@@ -40,6 +40,20 @@ mint dev
 
 View your local preview at `http://localhost:3000`.
 
+### Testing the API playground against a local server
+
+`openapi.yaml` only declares the production server (`https://api.dreep.cloud`), so
+readers of the deployed docs never see a localhost option. To point the playground
+at a local `dreep_server` instead, start the preview with:
+
+```
+./dev.sh
+```
+
+This prepends `http://localhost:6969` as the default server for the duration of the
+run and restores `openapi.yaml` when you stop it. Override the port with
+`DREEP_LOCAL_API_URL=http://localhost:8080 ./dev.sh`.
+
 ## Publishing changes
 
 Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.

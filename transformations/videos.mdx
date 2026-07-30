@@ -126,11 +126,9 @@ Standard HTML5 `<video>` tags do not support HLS natively in all browsers (Safar
 
 ---
 
-## 4. Audio & Thumbnail Extraction
+## 4. Audio Extraction
 
-Because they do not require a full video re-encode, Dreep can extract thumbnails and audio tracks from your video assets at lightning speeds (often returning in under 200ms).
-
-### Extracting Audio
+Because it does not require a full video re-encode, Dreep can extract audio tracks from your video assets at lightning speeds (often returning in under 200ms).
 
 To strip the video track and return just the audio, simply request one of our supported audio formats (`mp3`, `wav`, or `aac`).
 
@@ -152,7 +150,9 @@ https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=mp3
 https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.mp4?format=wav
 ```
 
-### Extracting Thumbnails
+---
+
+## 5. Thumbnail Extraction
 
 To generate a static thumbnail image from your video, simply request a supported image format (`jpeg`, `jpg`, `png`, or `webp`) and use the `time` parameter to specify the exact timestamp (in seconds) to capture. If `time` exceeds the video's actual duration, Dreep intelligently clamps it to the final frame.
 

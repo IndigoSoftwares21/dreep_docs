@@ -1,0 +1,2 @@
+# Written by dev.sh while the local API server is injected into openapi.yaml
+.openapi.yaml.orig
