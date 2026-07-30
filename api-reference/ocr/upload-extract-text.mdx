@@ -45,6 +45,6 @@ curl -X POST "https://api.dreep.cloud/api/v1/ocr" \
 ```
 
 <Note>
-  Textract emits one block per page, line, and word, each with its own geometry, so `blocks` is
+  The OCR engine emits one block per page, line, and word, each with its own geometry, so `blocks` is
   typically far larger than the text itself. Leave it off unless you use the coordinates.
 </Note>
