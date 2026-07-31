@@ -1,0 +1,159 @@
+---
+title: "Folders & Paths"
+description: "Organize media with S3-style folder paths and object keys, created on demand."
+---
+
+Every Dreep asset lives in a folder. You can address that folder three ways —
+by **path**, by **object key**, or by **id** — and any folders in a path that
+don't exist yet are created for you.
+
+```bash Upload into a nested path
+curl -X POST https://api.dreep.cloud/api/v1/upload \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@profile.jpg" \
+  -F "folder=avatars/2024/q1"
+```
+
+`avatars`, `2024` and `q1` are created if they don't already exist — no
+separate folder calls, no ids to keep track of.
+
+## Three ways to name a destination
+
+| Field | Use it when | Example |
+| :--- | :--- | :--- |
+| `folder` | You know the folder path and want the uploaded filename kept | `avatars/2024/q1` |
+| `key` | You want to control the full object path *and* the stored filename | `avatars/2024/q1/me.webp` |
+| `folderId` | You already have a folder's UUID | `78b52933-5541-4e90-8c15-39a84a412da8` |
+
+Only one may be given per request. Sending `folder` together with `folderId`
+(or with a `key` that has a folder prefix) returns `400`.
+
+Omit all three and the asset lands in your project's **default folder** — a
+real folder created with the project and named after it.
+
+## Object keys
+
+A `key` is the whole path, exactly like an S3 object key. Everything before the
+last `/` is the folder path; the last segment becomes the stored filename.
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@IMG_4821.HEIC" \
+  -F "key=avatars/2024/q1/jane.webp" \
+  -F "format=webp"
+```
+
+<Note>
+A `key` renames the stored asset — it never reinterprets the bytes. Dreep still
+detects the real file type from the uploaded file. To actually convert the
+file, pass `format` as above.
+</Note>
+
+## How path segments are normalized
+
+Each segment is slugified: lowercased, with anything outside letters, numbers,
+`_`, `-` and spaces stripped, and runs of spaces/underscores/hyphens collapsed
+to a single `-`.
+
+| You send | Folder slug |
+| :--- | :--- |
+| `Marketing Assets` | `marketing-assets` |
+| `2024 / Q1` | `2024/q1` |
+| `user_photos` | `user-photos` |
+
+This means **`Marketing Assets/2024` and `marketing-assets/2024` are the same
+folder** — you can't accidentally create two folders that differ only by case
+or spacing. The original text is kept as the folder's display `name`; the slug
+is what paths resolve against.
+
+### Limits
+
+- **Depth**: up to 10 levels.
+- **Segment length**: 100 characters after normalization.
+- A segment with no letters or numbers (`###`, `.`, `..`) is rejected with
+  `400`. Path traversal is not possible.
+
+## Turning off auto-creation
+
+Pass `autoCreateFolders=false` to require that the path already exists. An
+unknown path then returns `404` instead of quietly creating a folder tree —
+useful for catching typos in production.
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@profile.jpg" \
+  -F "folder=avatrs/2024" \
+  -F "autoCreateFolders=false"
+# 404 — Folder path "avatrs/2024" does not exist and autoCreateFolders is false
+```
+
+## Access control is inherited
+
+When a path creates folders, each new folder inherits `accessControlType` and
+`defaultExpirySeconds` from its parent. Creating `invoices/2024/q1` under a
+`private` `invoices` folder produces private subfolders — a new subfolder is
+never silently public.
+
+To set access control explicitly, create the folder first:
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/folders \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "invoices/2024/q1",
+    "accessControlType": "signed",
+    "defaultExpirySeconds": 86400
+  }'
+```
+
+`accessControlType` applies to the **leaf** (`q1`); the intermediate folders
+inherit as usual. See [Folders & Access Control](/security/folders).
+
+## Browsing by path
+
+```bash
+# Folders directly inside avatars/2024
+curl "https://api.dreep.cloud/api/v1/folders?path=avatars/2024" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+
+# Assets in one folder
+curl "https://api.dreep.cloud/api/v1/media?folder=avatars/2024" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+
+# ...and everything nested beneath it
+curl "https://api.dreep.cloud/api/v1/media?folder=avatars&recursive=true" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+Every folder and asset comes back with its `folder` / `path`, so you never have
+to reconstruct a path from ids.
+
+## Coming from S3
+
+The mapping is direct — drop the bucket, keep the key:
+
+```text
+s3://my-bucket/avatars/2024/q1/me.jpg
+                └──────────────────┘
+                        │
+                        ▼
+  POST /api/v1/upload   -F "key=avatars/2024/q1/me.jpg"
+```
+
+Two differences worth knowing:
+
+1. **Folders are real records**, not key prefixes. That's what lets a folder
+   carry access control and signed-URL expiry that its contents inherit.
+2. **Paths are slug-normalized**, so they are case-insensitive. S3 treats
+   `Avatars/` and `avatars/` as two different prefixes; Dreep treats them as
+   one folder.
+
+<Note>
+**Only empty folders can be deleted.** A folder that still contains files or
+subfolders returns `409` — delete its contents first. Deleting a folder never
+destroys media, so a mis-click can't lose data. Your project's default folder
+can't be deleted at all.
+</Note>

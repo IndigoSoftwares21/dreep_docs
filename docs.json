@@ -42,6 +42,7 @@
             "icon": "book-open",
             "pages": [
               "guides/uploading",
+              "guides/folders-and-paths",
               "guides/presets",
               "guides/byob-storage",
               "guides/text-extraction"
@@ -73,7 +74,9 @@
             "group": "Upload",
             "icon": "cloud-arrow-up",
             "pages": [
-              "api-reference/upload/upload-media"
+              "api-reference/upload/upload-media",
+              "api-reference/upload/create-presigned-upload",
+              "api-reference/upload/confirm-upload"
             ]
           },
           {

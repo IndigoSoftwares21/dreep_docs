@@ -2,3 +2,28 @@
 title: "List Media Assets"
 openapi: "GET /api/v1/media"
 ---
+
+Returns every ready asset in the project, newest first. Uploads still waiting
+on [confirm](/api-reference/upload/confirm-upload) are excluded.
+
+## Filtering by folder
+
+Pass `folder` (a path) or `folderId` (a UUID) to scope the listing to one
+folder. Add `recursive=true` to include everything nested beneath it.
+
+```bash Just this folder
+curl "https://api.dreep.cloud/api/v1/media?folder=avatars/2024" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+```bash This folder and all subfolders
+curl "https://api.dreep.cloud/api/v1/media?folder=avatars&recursive=true" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+An unknown `folder` path returns `400` rather than an empty list, so a typo
+doesn't look like an empty folder. See
+[Folders & Paths](/guides/folders-and-paths).
+
+Each asset comes back with its `folder` path already resolved, so you don't
+need a second call to turn `folderId` into something readable.

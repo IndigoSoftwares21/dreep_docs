@@ -2,3 +2,30 @@
 title: "List Folders"
 openapi: "GET /api/v1/folders"
 ---
+
+With no parameters this returns **every folder in the project**, at any depth.
+Each one carries its full `path`, so one call is enough to build the whole tree.
+
+```bash Every folder
+curl "https://api.dreep.cloud/api/v1/folders" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+To walk the tree one level at a time, the way a file browser does, pass `path`
+(or `parentId=null` for the root level):
+
+```bash Direct children of avatars/2024
+curl "https://api.dreep.cloud/api/v1/folders?path=avatars/2024" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+```bash Root folders only
+curl "https://api.dreep.cloud/api/v1/folders?parentId=null" \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
+Every folder includes its full `path` from the project root, so you can link
+straight to it or reuse it as the `folder` value on an upload.
+
+A `path` that names no folder returns an empty `folders` array with
+`currentFolder: null`. See [Folders & Paths](/guides/folders-and-paths).

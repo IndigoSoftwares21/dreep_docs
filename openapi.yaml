@@ -30,6 +30,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+    PaymentRequired:
+      description: A plan limit for this feature has been reached
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     InternalError:
       description: Internal Server Error
       content:
@@ -117,10 +123,40 @@ paths:
                   type: string
                   format: binary
                   description: The media file to upload.
+                folder:
+                  type: string
+                  description: >
+                    Slug path of the destination folder, relative to the project
+                    root. Missing folders are created automatically, at any
+                    depth. Segments are normalized to slugs, so
+                    `Marketing Assets/2024` and `marketing-assets/2024` are the
+                    same folder. Max 10 levels deep.
+                  example: "avatars/2024/q1"
+                key:
+                  type: string
+                  description: >
+                    Full S3-style object key. Everything before the last `/` is
+                    the folder path (created if missing); the last segment
+                    becomes the stored filename. Mutually exclusive with
+                    `folder`.
+                  example: "avatars/2024/q1/me.webp"
                 folderId:
                   type: string
-                  description: The ID of the folder to upload the file into. Optional — defaults to the project's default folder when omitted.
-                  example: "fol_987654321"
+                  format: uuid
+                  description: >
+                    UUID of an existing folder to upload into. Mutually
+                    exclusive with `folder` and with a `key` that carries a
+                    folder prefix. Omitting all three uploads into the
+                    project's default folder.
+                  example: "78b52933-5541-4e90-8c15-39a84a412da8"
+                autoCreateFolders:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: >
+                    Set to `false` to require that the folder path already
+                    exists. An unknown path then returns 404 instead of
+                    creating the folders.
                 format:
                   type: string
                   enum:
@@ -267,12 +303,147 @@ paths:
                 $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/v1/upload/presign:
+    post:
+      summary: Create Presigned Upload
+      description: >
+        Start a direct-to-storage upload. Dreep returns a short-lived
+        `uploadUrl`; `PUT` the file bytes straight to it, then call
+        [Confirm Upload](/api-reference/upload/confirm-upload) with the returned
+        `id` to finalize the asset.
+
+
+        Use this instead of [Upload Media](/api-reference/upload/upload-media)
+        for large files or browser uploads — the bytes never pass through the
+        Dreep API. The destination folder is resolved exactly as it is for a
+        direct upload, including creating missing folders from a `folder` path
+        or `key`.
+
+
+        If `contentHash` matches an asset Dreep already stores, the response
+        comes back with `alreadyExists: true` and no `uploadUrl` — skip the
+        `PUT` and go straight to confirm.
+      tags:
+        - Upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                  description: >
+                    Name to store the file under. Optional when `key` is given,
+                    since the key's last segment supplies it.
+                  example: "me.webp"
+                contentType:
+                  type: string
+                  example: "image/webp"
+                sizeBytes:
+                  type: integer
+                  example: 438720
+                folder:
+                  type: string
+                  description: Slug path of the destination folder. Missing folders are created.
+                  example: "avatars/2024"
+                key:
+                  type: string
+                  description: Full S3-style object key (folder path + filename).
+                  example: "avatars/2024/me.webp"
+                folderId:
+                  type: string
+                  format: uuid
+                  description: UUID of an existing destination folder.
+                autoCreateFolders:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                format:
+                  type: string
+                  description: Target format to re-encode to on confirm.
+                presetKey:
+                  type: string
+                contentHash:
+                  type: string
+                  description: SHA-256 of the file, used to skip re-uploading content Dreep already has.
+              required:
+                - contentType
+                - sizeBytes
+      responses:
+        "201":
+          description: Presigned upload created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: Pass this to the confirm endpoint.
+                  uploadUrl:
+                    type: string
+                    description: Short-lived URL to PUT the file bytes to. Absent when `alreadyExists` is true.
+                  contentType:
+                    type: string
+                  alreadyExists:
+                    type: boolean
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/v1/upload/{id}/confirm:
+    post:
+      summary: Confirm Upload
+      description: >
+        Finalize a presigned upload once the bytes have been PUT to storage.
+        Dreep verifies the object exists, reads its metadata, applies any
+        transform, and flips the asset to `ready`. Until this is called the
+        asset stays `pending` and is excluded from media listings.
+      tags:
+        - Upload
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The `id` returned by the presign call.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transform:
+                  type: object
+                  description: Transform to apply before storing, same parameters as Upload Media.
+                presetKey:
+                  type: string
+      responses:
+        "200":
+          description: Upload confirmed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Upload not found
+        "409":
+          description: The file hasn't finished uploading to storage yet
   /api/v1/ocr:
     post:
       summary: Upload & Extract Text
       description: >
         Upload an image or PDF document and instantly extract its text using Optical Character Recognition (OCR).
-        If `folderId` is provided, the extracted text will also be saved to your Dreep storage in that folder.
+        If a destination folder is given (via `folder` or `folderId`), the extracted text is also saved to your
+        Dreep storage as a `.txt` file in that folder. With no folder, the text is returned in the response only.
       tags:
         - Media
       security:
@@ -288,19 +459,23 @@ paths:
                   type: string
                   format: binary
                   description: The file to extract text from (Image or PDF).
+                folder:
+                  type: string
+                  description: >
+                    Slug path of the folder to save the extracted text into,
+                    relative to the project root. Missing folders are created.
+                  example: "receipts/2024"
                 folderId:
                   type: string
-                  description: Optional folder ID to save the extracted text file into.
-                includeBlocks:
-                  type: string
-                  enum:
-                    - "true"
-                    - "false"
-                  default: "false"
+                  format: uuid
                   description: >
-                    Set to `true` to include the raw Textract `blocks` array (per-line and
-                    per-word geometry) in the response. Omitted or `false` returns the
-                    extracted text only, which keeps the response small.
+                    UUID of an existing folder to save the extracted text into.
+                    Mutually exclusive with `folder`.
+                autoCreateFolders:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: Set to `false` to require that `folder` already exists.
       responses:
         "200":
           description: Extraction successful
@@ -314,9 +489,7 @@ paths:
                     description: The fully concatenated plain text.
                   blocks:
                     type: array
-                    description: >
-                      Raw AWS Textract block objects (lines, words) with bounding boxes.
-                      Only present when the request sets `includeBlocks=true`.
+                    description: Raw AWS Textract block objects (lines, words) with bounding boxes.
                     items:
                       type: object
                   savedAsset:
@@ -508,6 +681,30 @@ paths:
           schema:
             type: integer
             default: 20
+        - name: folder
+          in: query
+          description: >
+            Only list assets in this folder path (relative to the project
+            root). The path must already exist. Mutually exclusive with
+            `folderId`.
+          schema:
+            type: string
+            example: "avatars/2024"
+        - name: folderId
+          in: query
+          description: UUID of the folder to list. Mutually exclusive with `folder`.
+          schema:
+            type: string
+            format: uuid
+        - name: recursive
+          in: query
+          description: >
+            With `folder` or `folderId`, also include assets in every subfolder
+            beneath it. Ignored when no folder filter is given.
+          schema:
+            type: string
+            enum: ["true", "false"]
+            default: "false"
       responses:
         "200":
           description: A list of media assets
@@ -524,6 +721,13 @@ paths:
                       type: string
                     url:
                       type: string
+                    folder:
+                      type: string
+                      description: Slug path of the folder the asset lives in.
+                      example: "avatars/2024/q1"
+                    folderId:
+                      type: string
+                      format: uuid
         "401":
           $ref: "#/components/responses/Unauthorized"
   /api/v1/media/{mediaId}:
@@ -555,29 +759,82 @@ paths:
   /api/v1/folders:
     get:
       summary: List Folders
+      description: >
+        Lists folders. With no parameters this returns every folder in the
+        project, at any depth — each one carrying its full `path`, so you can
+        build the whole tree from a single call. Pass `path` to list the direct
+        children of one folder, or `parentId=null` for root folders only.
       tags:
         - Folders
+      parameters:
+        - name: path
+          in: query
+          description: >
+            List the children of this folder path (relative to the project
+            root). An unknown path returns an empty list.
+          schema:
+            type: string
+            example: "avatars/2024"
+        - name: parentId
+          in: query
+          description: >
+            List the children of this folder UUID. Pass the literal `null` to
+            list root folders explicitly.
+          schema:
+            type: string
       responses:
         "200":
           description: A list of folders
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    name:
-                      type: string
+                type: object
+                properties:
+                  folders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        name:
+                          type: string
+                        slug:
+                          type: string
+                        path:
+                          type: string
+                          description: Slug path from the project root.
+                          example: "avatars/2024/q1"
+                        parentId:
+                          type: string
+                          format: uuid
+                          nullable: true
+                        accessControlType:
+                          type: string
+                          enum: [public, private, signed]
+                  currentFolder:
+                    type: object
+                    nullable: true
+                    description: The folder named by `path`/`parentId`, if any.
         "401":
           $ref: "#/components/responses/Unauthorized"
     post:
       summary: Create Folder
       description: >
-        Create a folder to organize uploads. `accessControlType` controls who
-        can view assets inside it once uploaded:
+        Create a folder to organize uploads. Pass `name` to create a single
+        folder, or `path` to create a whole nested chain (`2024/q1/launch`) in
+        one call — only the missing segments are created, and the leaf is
+        returned.
+
+
+        Note that uploads create folders on demand too, so calling this first
+        is only necessary when you want to set `accessControlType` or
+        `defaultExpirySeconds` up front.
+
+
+        `accessControlType` controls who can view assets inside the folder once
+        uploaded, and is inherited by any subfolder created beneath it:
         - **public** (default): fetchable by anyone via `/api/v1/fetch/{mediaId}`.
         - **private**: only viewable by an authenticated project member from
           the Dreep dashboard — never fetchable through the public API.
@@ -596,11 +853,31 @@ paths:
               properties:
                 name:
                   type: string
+                  description: >
+                    Name of a single folder to create. Mutually exclusive with
+                    `path`.
                   example: "Marketing Assets"
+                path:
+                  type: string
+                  description: >
+                    Slug path to create, relative to the project root. Creates
+                    every missing segment and returns the leaf. Cannot be
+                    combined with `parentId`/`parentPath`, which would make the
+                    destination ambiguous.
+                  example: "2024/q1/launch"
                 parentId:
                   type: string
-                  description: Optional ID of the parent folder.
-                  example: "fol_123456789"
+                  format: uuid
+                  description: >
+                    UUID of the parent folder to create `name` under. Mutually
+                    exclusive with `parentPath`.
+                  example: "78b52933-5541-4e90-8c15-39a84a412da8"
+                parentPath:
+                  type: string
+                  description: >
+                    Path of an existing parent folder to create `name` under.
+                    Must already exist. Mutually exclusive with `parentId`.
+                  example: "avatars/2024"
                 accessControlType:
                   type: string
                   enum: [public, private, signed]
@@ -610,8 +887,9 @@ paths:
                   type: integer
                   description: Default URL expiration in seconds for assets uploaded into signed folders.
                   example: 3600
-              required:
-                - name
+              anyOf:
+                - required: [name]
+                - required: [path]
       responses:
         "200":
           description: Folder created
@@ -620,6 +898,10 @@ paths:
               schema:
                 type: object
                 properties:
+                  path:
+                    type: string
+                    description: Slug path of the created folder from the project root.
+                    example: "2024/q1/launch"
                   id:
                     type: string
                   name:

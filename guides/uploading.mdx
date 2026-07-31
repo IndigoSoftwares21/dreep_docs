@@ -5,9 +5,32 @@ description: "How to upload files directly to Dreep Storage using Presigned URLs
 
 Dreep uses a highly efficient, two-step upload process that allows your users (or your backend) to upload files directly to the underlying Dreep storage edge. This completely bypasses the primary Dreep API server, preventing bottlenecks and eliminating strict file-size limits on the API layer.
 
+<Note>
+For files you're happy to send through the API, a single multipart
+`POST /api/v1/upload` is simpler — see [Upload Media](/api-reference/upload/upload-media).
+The two-step flow below is for large files and browser uploads.
+</Note>
+
 ### Step 1: Generate a Presigned URL
 
-Make a `POST` request to the `/api/v1/upload` endpoint with the details of the file you intend to upload (size, mime-type, and the destination `folderId`).
+Make a `POST` request to `/api/v1/upload/presign` with the details of the file
+you intend to upload (size, mime-type, and where it should land).
+
+The destination is named exactly the same way as a direct upload: a `folder`
+path, a full `key`, or a `folderId`. Missing folders are created for you — see
+[Folders & Paths](/guides/folders-and-paths).
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload/presign \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filename": "video.mp4",
+    "contentType": "video/mp4",
+    "sizeBytes": 52428800,
+    "folder": "launch/2024"
+  }'
+```
 
 The API will return an `uploadUrl` and a tracking `id`.
 
@@ -17,6 +40,10 @@ The API will return an `uploadUrl` and a tracking `id`.
   "uploadUrl": "https://cdn.dreep.cloud/..."
 }
 ```
+
+If you send a `contentHash` that matches content Dreep already stores, the
+response comes back with `"alreadyExists": true` and no `uploadUrl` — skip
+Step 2 and go straight to Step 3.
 
 ### Step 2: PUT the file to the Upload URL
 
@@ -68,9 +95,23 @@ if response.status_code == 200:
 
 </CodeGroup>
 
+### Step 3: Confirm the upload
+
+Once the `PUT` succeeds, call the confirm endpoint with the `id` from Step 1.
+Dreep verifies the object landed, reads its metadata, applies any transform,
+and marks the asset `ready`. Until you do this the asset stays `pending` and is
+excluded from media listings.
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload/2f928a3f-1d2a-4a2b-8a8b-123456789abc/confirm \
+  -H "Authorization: Bearer drp_live_xxxxx"
+```
+
 ### Uploading to Secure Folders
 
-By default, uploads go to your project's default public folder. To upload an asset into a Private or Signed folder, simply provide the `folderId` of that secure folder in Step 1.
+By default, uploads go to your project's default public folder. To upload an asset into a Private or Signed folder, name that folder in Step 1 — by `folder` path or by `folderId`.
+
+Folders created on the fly by a path inherit their parent's access control, so uploading to `invoices/2024/q1` under a Private `invoices` folder keeps the new subfolders private. See [Folders & Paths](/guides/folders-and-paths).
 
 If you upload into a Signed folder, you can optionally provide `expiresInSeconds` during Step 1 to override the folder's default expiration just for this specific asset.
 
