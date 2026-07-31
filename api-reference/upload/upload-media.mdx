@@ -6,6 +6,24 @@ openapi: "POST /api/v1/upload"
 
 The upload endpoint accepts **images, videos, and raw files** through one multipart request. Dreep detects the file type and applies the relevant processing — transforming images and videos on the fly, or storing raw files as-is. Optional transformation parameters are ignored or rejected when they don't apply to the uploaded file type.
 
+## Choosing a destination
+
+Name the destination folder with `folder` (a path), `key` (a full S3-style
+object key), or `folderId` (a UUID). Only one may be given per request. Missing
+folders in a path are created automatically, at any depth.
+
+```bash Upload into a nested path
+curl -X POST https://api.dreep.cloud/api/v1/upload \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@profile.jpg" \
+  -F "folder=avatars/2024/q1"
+```
+
+Omit all three and the file lands in your project's default folder. Path
+segments are normalized to slugs, so `Marketing Assets` and `marketing-assets`
+resolve to the same folder. Full details in
+[Folders & Paths](/guides/folders-and-paths).
+
 ## Images
 
 Apply resizing, cropping, format conversion, and compression before storing.

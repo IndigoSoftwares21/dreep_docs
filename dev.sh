@@ -31,4 +31,10 @@ fs.writeFileSync(spec, lines.join("\n"));
 ' "$SPEC" "$LOCAL_URL"
 
 echo "Playground default server: $LOCAL_URL (restored to production on exit)"
-mint dev "$@"
+
+# Falls back to npx so a fresh checkout doesn't need `npm i -g mint` first.
+if command -v mint >/dev/null 2>&1; then
+    mint dev "$@"
+else
+    npx --yes mint dev "$@"
+fi

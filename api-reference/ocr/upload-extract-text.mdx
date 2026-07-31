@@ -3,6 +3,21 @@ title: "Upload & Extract Text"
 openapi: "POST /api/v1/ocr"
 ---
 
+## Saving the extracted text
+
+Name a destination folder and Dreep also stores the extracted text as a `.txt`
+asset in it. Use `folder` (a path, created on demand) or `folderId` (a UUID):
+
+```bash
+curl -X POST "https://api.dreep.cloud/api/v1/ocr" \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@receipt.jpg" \
+  -F "folder=receipts/2024"
+```
+
+With no folder, the text is returned in the response only and `savedAsset` is
+`null`. See [Folders & Paths](/guides/folders-and-paths).
+
 ## Response size
 
 By default the response contains the extracted `text` only:

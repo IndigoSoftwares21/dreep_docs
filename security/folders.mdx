@@ -5,6 +5,8 @@ description: 'Manage asset visibility using Public, Private, and Signed folders.
 
 Dreep uses a folder-based security model. Every media asset you upload is placed inside a specific folder. The folder's access control type dictates exactly who can view, fetch, or transform the assets inside it.
 
+Folders nest, and a folder created inside another **inherits its parent's access control type and default expiry**. That inheritance is what makes it safe to let uploads create folders on the fly with a path like `invoices/2024/q1` — a new subfolder of a Private folder is never silently Public. See [Folders & Paths](/guides/folders-and-paths).
+
 There are three access control modes:
 
 ## 1. Public Folders
@@ -53,7 +55,28 @@ curl -X POST https://api.dreep.cloud/api/v1/folders \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Premium Course Videos",
-    "accessControl": "signed",
+    "accessControlType": "signed",
     "defaultExpirySeconds": 86400
   }'
 ```
+
+Pass `path` instead of `name` to create a whole nested chain at once. The
+access settings apply to the last segment; the folders above it inherit from
+their parents as usual.
+
+```bash Create a nested folder
+curl -X POST https://api.dreep.cloud/api/v1/folders \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "courses/2024/premium",
+    "accessControlType": "signed",
+    "defaultExpirySeconds": 86400
+  }'
+```
+
+<Note>
+Only empty folders can be deleted — a folder still holding files or subfolders
+returns `409`, so removing a folder can never destroy media by accident. Your
+project's default folder cannot be deleted at all.
+</Note>

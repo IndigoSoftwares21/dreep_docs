@@ -1,0 +1,42 @@
+---
+title: "Confirm Upload"
+description: "Finalize a presigned upload once the file bytes have reached storage."
+openapi: "POST /api/v1/upload/{id}/confirm"
+---
+
+The last step of the
+[presigned upload flow](/api-reference/upload/create-presigned-upload). Call it
+with the `id` returned by the presign request, after the `PUT` to `uploadUrl`
+has succeeded.
+
+Dreep verifies the object actually landed in storage, reads its metadata
+(dimensions, format, size), applies any transform you pass, and flips the asset
+to `ready`.
+
+<Note>
+An asset that is never confirmed stays `pending` forever. Pending assets are
+excluded from [List Media](/api-reference/media/list-media) and are swept up by
+background reconciliation, so an abandoned upload won't show up as a broken
+asset.
+</Note>
+
+## Transforming on confirm
+
+Pass `transform` (or `presetKey`) to re-encode the file as part of finalizing
+it — the same parameters [Upload Media](/api-reference/upload/upload-media)
+accepts.
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload/2f928a3f-1d2a-4a2b-8a8b-123456789abc/confirm \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "transform": { "format": "webp", "width": 800 } }'
+```
+
+## Responses
+
+| Status | Meaning |
+| :--- | :--- |
+| `200` | Asset confirmed and ready. Calling again is safe — an already-ready asset is returned as-is. |
+| `404` | No pending upload with that id in this project. |
+| `409` | The file hasn't finished uploading to storage yet. Retry after the `PUT` completes. |

@@ -1,0 +1,37 @@
+---
+title: "Create Presigned Upload"
+description: "Get a short-lived URL to upload file bytes straight to storage, bypassing the API."
+openapi: "POST /api/v1/upload/presign"
+---
+
+Use this instead of [Upload Media](/api-reference/upload/upload-media) for large
+files and browser uploads — the bytes go directly to storage and never pass
+through the Dreep API.
+
+The flow is three steps:
+
+1. `POST /api/v1/upload/presign` → returns an `id` and an `uploadUrl`.
+2. `PUT` the raw file bytes to `uploadUrl`, with a `Content-Type` matching the
+   `contentType` you declared.
+3. [`POST /api/v1/upload/{id}/confirm`](/api-reference/upload/confirm-upload) to
+   finalize the asset.
+
+Until step 3 the asset stays `pending` and is excluded from media listings.
+
+## Destination
+
+The destination folder is named exactly as it is for a direct upload — with
+`folder`, `key`, or `folderId` — and missing folders are created for you. When
+you pass a `key`, its last segment supplies the filename, so `filename` becomes
+optional. See [Folders & Paths](/guides/folders-and-paths).
+
+## Skipping the upload for content Dreep already has
+
+Send `contentHash` (the SHA-256 of the file). If it matches content already in
+storage, the response has `"alreadyExists": true` and no `uploadUrl` — skip the
+`PUT` and go straight to confirm.
+
+<Warning>
+The `uploadUrl` is short-lived and single-purpose. Generate it server-side and
+hand it to the client immediately; don't cache or reuse it.
+</Warning>

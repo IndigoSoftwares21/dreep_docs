@@ -2,3 +2,54 @@
 title: "Create Folder"
 openapi: "POST /api/v1/folders"
 ---
+
+<Note>
+Uploads create folders on demand, so you usually don't need this endpoint. Reach
+for it when you want to set `accessControlType` or `defaultExpirySeconds` on a
+folder **before** anything is uploaded into it.
+</Note>
+
+## One folder, or a whole chain
+
+Pass `name` to create a single folder, optionally under a parent (`parentId` or
+`parentPath`):
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/folders \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "q1", "parentPath": "invoices/2024" }'
+```
+
+Or pass `path` to create every missing segment in one call and get the leaf
+back:
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/folders \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "invoices/2024/q1",
+    "accessControlType": "signed",
+    "defaultExpirySeconds": 86400
+  }'
+```
+
+`path` is always relative to the project root, so it can't be combined with
+`parentId` or `parentPath`. Segments already present are reused, never
+duplicated — the call is safe to repeat.
+
+## Access control
+
+`accessControlType` and `defaultExpirySeconds` apply to the **last** segment.
+Any intermediate folders created along the way inherit from their parent, so
+building `invoices/2024/q1` under a Private `invoices` never produces a public
+folder in between. See [Folders & Access Control](/security/folders).
+
+## Naming
+
+Names are normalized to slugs — lowercased, with disallowed characters stripped
+and separators collapsed. `Marketing Assets` becomes `marketing-assets`, and
+creating it twice returns the same folder rather than a duplicate. The original
+text is kept as the folder's display `name`. See
+[Folders & Paths](/guides/folders-and-paths).
