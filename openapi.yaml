@@ -505,6 +505,106 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /api/v1/bg-remove:
+    post:
+      summary: Remove Background
+      description: >
+        Upload an image and get back a cutout of the subject with a transparent
+        background, saved to your Dreep storage as a new asset.
+
+
+        The cutout keeps its alpha channel — it is never flattened onto a
+        colour. To serve it on a background, pass `bg` to the fetch endpoint
+        (`/api/v1/fetch/{id}?bg=ffffff`). That runs as an ordinary
+        transformation, so a single removal can serve any number of background
+        colours without being charged again.
+
+
+        Background removals are billed from a consumable add-on rather than a
+        plan allowance. With no credits remaining the endpoint returns `402`.
+      tags:
+        - Media
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image to cut out. JPEG, PNG or WebP.
+                format:
+                  type: string
+                  enum: ["png", "webp"]
+                  default: "png"
+                  description: >
+                    Output format. Only alpha-capable formats are accepted — a
+                    cutout encoded as JPEG would lose its transparency.
+                folder:
+                  type: string
+                  description: >
+                    Slug path of the folder to save the cutout into, relative to
+                    the project root. Missing folders are created.
+                  example: "products/cutouts"
+                folderId:
+                  type: string
+                  format: uuid
+                  description: >
+                    UUID of an existing folder to save the cutout into.
+                    Mutually exclusive with `folder`.
+                autoCreateFolders:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: Set to `false` to require that `folder` already exists.
+      responses:
+        "200":
+          description: Background removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  asset:
+                    type: object
+                    description: The stored cutout.
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      storageKey:
+                        type: string
+                      url:
+                        type: string
+                        description: Fetch URL for the cutout. Accepts transform params.
+                      format:
+                        type: string
+                        enum: ["png", "webp"]
+                      width:
+                        type: integer
+                      height:
+                        type: integer
+                      sizeBytes:
+                        type: integer
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: >
+            No background removal credits remaining. The response body carries
+            `code: "LIMIT_EXCEEDED"` and `featureKey: "bg_removals"`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/fetch/{mediaId}:
     get:
       summary: Fetch Media
@@ -566,6 +666,17 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+        - name: bg
+          in: query
+          description: >
+            Background colour composited behind any transparency, as hex
+            **without** a leading `#` (`fff`, `ffffff`, or `ffffffcc` for
+            alpha). Most useful on a background-removed cutout: the cutout is
+            stored once with transparency and each colour is applied at
+            delivery, so one removal serves any number of backgrounds.
+          schema:
+            type: string
+          example: "ffffff"
         - name: fps
           in: query
           description: Video frame rate (1-120).

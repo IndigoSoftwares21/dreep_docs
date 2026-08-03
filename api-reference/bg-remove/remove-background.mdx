@@ -1,0 +1,84 @@
+---
+title: "Remove Background"
+openapi: "POST /api/v1/bg-remove"
+---
+
+## Choosing a background colour
+
+The cutout is stored with its transparency intact and is never flattened onto a
+colour. To put it on a background, pass `bg` to the fetch endpoint:
+
+```bash
+# transparent — the stored cutout
+https://api.dreep.cloud/api/v1/fetch/7fa3d9e0.png
+
+# on white
+https://api.dreep.cloud/api/v1/fetch/7fa3d9e0.png?bg=ffffff
+
+# on brand navy, resized, as WebP
+https://api.dreep.cloud/api/v1/fetch/7fa3d9e0.png?bg=1e3a8a&width=800&format=webp
+```
+
+`bg` is hex **without** a leading `#`. Three, six, or eight characters — the
+eight-character form carries alpha.
+
+This is why the colour is applied at delivery rather than baked in: one removal
+serves any number of backgrounds. Each colour is an ordinary transformation,
+cached permanently after its first request, so you are not charged another
+removal for it.
+
+## Saving to a folder
+
+Name a destination and the cutout is stored there. Use `folder` (a path,
+created on demand) or `folderId` (a UUID):
+
+```bash
+curl -X POST "https://api.dreep.cloud/api/v1/bg-remove" \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@product.jpg" \
+  -F "folder=products/cutouts"
+```
+
+With no folder given, the cutout is saved to the project's default folder. See
+[Folders & Paths](/guides/folders-and-paths).
+
+## Output format
+
+PNG by default. Pass `format=webp` for a smaller file at the same
+transparency:
+
+```bash
+curl -X POST "https://api.dreep.cloud/api/v1/bg-remove" \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -F "file=@product.jpg" \
+  -F "format=webp"
+```
+
+```json
+{
+  "asset": {
+    "id": "7fa3d9e0-fec9-4a76-ac53-4b576500b43a",
+    "storageKey": "originals/2b9b4e61/7fa3d9e0.webp",
+    "url": "https://api.dreep.cloud/api/v1/fetch/7fa3d9e0.webp",
+    "format": "webp",
+    "width": 1200,
+    "height": 1600,
+    "sizeBytes": 184320
+  }
+}
+```
+
+<Note>
+  Only `png` and `webp` are accepted. JPEG has no alpha channel, so a cutout
+  encoded as JPEG would arrive with a solid background and silently lose the
+  transparency you paid for.
+</Note>
+
+## Billing
+
+Background removals come from a consumable add-on, not a plan allowance — no
+plan includes them by default. Each successful removal spends one credit.
+
+With no credits left the endpoint returns `402` with `code: "LIMIT_EXCEEDED"`
+and `featureKey: "bg_removals"`. Credits are only spent once the cutout is
+stored, so a failed request costs nothing.

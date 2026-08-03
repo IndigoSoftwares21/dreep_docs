@@ -88,6 +88,13 @@
             ]
           },
           {
+            "group": "Background Removal",
+            "icon": "eraser",
+            "pages": [
+              "api-reference/bg-remove/remove-background"
+            ]
+          },
+          {
             "group": "Media",
             "icon": "image",
             "pages": [
