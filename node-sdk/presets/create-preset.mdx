@@ -1,0 +1,48 @@
+---
+title: "Create Preset"
+description: "Save a named transform with dreep.createPreset()."
+---
+
+A preset is a named transform, so call sites don't repeat parameters and the recipe can
+change without touching them. See [Presets](/guides/presets).
+
+```ts
+const preset = await dreep.createPreset({
+  key: "thumbnail",
+  name: "Thumbnail",
+  transform: { width: 200, height: 200, fit: "cover", format: "webp" },
+});
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `key` | `string` | **Required.** What callers pass as the `preset` transform parameter |
+| `name` | `string` | **Required.** Human-readable label |
+| `transform` | [`TransformParams`](/node-sdk/media/build-url#parameters) | **Required.** The recipe |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+```ts
+{ id: "…", key: "thumbnail", name: "Thumbnail", params: { width: 200, … } }
+```
+
+## Using it
+
+Once saved, apply it anywhere a transform is accepted:
+
+```ts
+dreep.url(asset, { preset: "thumbnail" });
+await dreep.upload({ file, presetKey: "thumbnail" });
+```
+
+Changing a preset changes what every call site delivers, without a deploy.
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepLimitError` | The plan's preset quota is full |
+| `DreepValidationError` | Invalid transform, or a key already in use |

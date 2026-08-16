@@ -1,0 +1,94 @@
+---
+title: "Upload Media"
+description: "Upload a file with dreep.upload(), optionally transforming it before storage."
+---
+
+Uploads a file through the Dreep API. Simplest option, good up to a few hundred MB — for
+anything larger, or for uploads originating in a browser, use
+[`presignUpload()`](/node-sdk/upload/create-presigned-upload).
+
+```ts
+const asset = await dreep.upload({
+  file: fs.createReadStream("hero.jpg"),
+  folder: "marketing/2026",
+});
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `Buffer \| Readable \| Blob \| File` | **Required.** The file to upload |
+| `filename` | `string` | Name to store it under. Needed when the source carries none, such as a `Buffer` |
+| `folder` | `string` | Slug path of the destination. Missing folders are created |
+| `key` | `string` | Full S3-style object key. Mutually exclusive with `folder` |
+| `folderId` | `string` | UUID of an existing folder |
+| `autoCreateFolders` | `boolean` | Set `false` to require the path already exists |
+| `transform` | [`TransformParams`](/node-sdk/media/build-url#parameters) | Applied **before** storage |
+| `presetKey` | `string` | A saved preset, applied instead of `transform` |
+| `signal` | `AbortSignal` | Cancels the upload |
+
+Omit `folder`, `key` and `folderId` and the asset lands in the project's default folder.
+See [Folders & Paths](/guides/folders-and-paths) for how paths resolve.
+
+## Returns
+
+```ts
+{
+  id: "2f928a3f-1d2a-4a2b",
+  url: "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.webp",
+  originalFilename: "hero.jpg",
+  mimetype: "image/webp",
+  format: "webp",          // images only
+  width: 1200,             // images only
+  height: 800,             // images only
+  sizeBytes: 245000,
+  status: "ready",
+  folder: "marketing/2026",
+  folderId: "78b52933-…",
+  projectId: "3ca76fa8-…",
+  createdAt: "2026-08-16T18:53:29.000Z",
+}
+```
+
+<Note>
+  `sizeBytes` is a number. The API sends it as a string — Postgres `BIGINT` columns
+  serialise that way over JSON — and the SDK converts it, so `a.sizeBytes + b.sizeBytes`
+  adds rather than concatenating.
+</Note>
+
+## Transforming on upload
+
+Anything in `transform` is applied before storage, so the transformed result is what gets
+stored and returned. The original is not kept.
+
+```ts
+const asset = await dreep.upload({
+  file,
+  transform: { width: 800, format: "webp", quality: 80 },
+});
+
+asset.width;  // 800
+asset.format; // "webp"
+```
+
+This counts against your plan's monthly transformation quota. Transforming at delivery
+time with [`url()`](/node-sdk/media/build-url) instead keeps the original intact and
+serves any number of variants from it.
+
+## Uploading a stream
+
+A Node `Readable` is read fully into memory before sending, because `fetch` can't stream a
+multipart body. For large files that's a reason to prefer
+[`presignUpload()`](/node-sdk/upload/create-presigned-upload), which sends the bytes
+straight to storage.
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | `autoCreateFolders: false` and the path doesn't exist |
+| `DreepLimitError` | Storage or transformation quota reached |
+| `DreepValidationError` | Unsupported file type, or an invalid transform |
+
+Uploads are never retried automatically — see [Errors & Retries](/node-sdk/errors).

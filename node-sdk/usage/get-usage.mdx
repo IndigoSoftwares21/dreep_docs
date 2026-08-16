@@ -1,0 +1,40 @@
+---
+title: "Usage"
+description: "Storage consumed and object counts with dreep.getUsage()."
+---
+
+```ts
+const { storageBytes, imageCount, fileCount, folderCount } = await dreep.getUsage();
+```
+
+## Parameters
+
+Takes no arguments beyond an optional `signal`.
+
+## Returns
+
+```ts
+{
+  storageBytes: 170461024,
+  imageCount: 109,
+  fileCount: 19,
+  folderCount: 11,
+}
+```
+
+`storageBytes` is normalised to a number by the SDK — the API sends it as a string, since
+the underlying column is a `BIGINT`.
+
+## Reporting
+
+```ts
+const { storageBytes, imageCount, fileCount } = await dreep.getUsage();
+
+console.log(
+  `${(storageBytes / 1024 ** 3).toFixed(2)} GB across ${imageCount + fileCount} assets`,
+);
+```
+
+To find out what happens when a plan limit is reached, see
+[`DreepLimitError`](/node-sdk/errors#plan-limits) — it carries the feature, the ceiling and
+current consumption at the moment a request was rejected.

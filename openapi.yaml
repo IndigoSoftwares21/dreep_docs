@@ -818,27 +818,64 @@ paths:
             default: "false"
       responses:
         "200":
-          description: A list of media assets
+          description: A page of media assets
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                    filename:
-                      type: string
-                    url:
-                      type: string
-                    folder:
-                      type: string
-                      description: Slug path of the folder the asset lives in.
-                      example: "avatars/2024/q1"
-                    folderId:
-                      type: string
-                      format: uuid
+                type: object
+                properties:
+                  assets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        filename:
+                          type: string
+                          example: "hero.webp"
+                        url:
+                          type: string
+                          description: Ready-to-use delivery URL for the asset.
+                          example: "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b"
+                        type:
+                          type: string
+                          description: MIME type.
+                          example: "image/webp"
+                        sizeBytes:
+                          type: string
+                          description: >
+                            Size in bytes. Serialised as a string because the
+                            underlying column is a BIGINT — parse it before
+                            doing arithmetic.
+                          example: "56696"
+                        assetType:
+                          type: string
+                          enum: [image, file]
+                        folder:
+                          type: string
+                          description: Slug path of the folder the asset lives in.
+                          example: "avatars/2024/q1"
+                        folderId:
+                          type: string
+                          format: uuid
+                        createdAt:
+                          type: string
+                          format: date-time
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                        example: 1
+                      limit:
+                        type: integer
+                        example: 20
+                      total:
+                        type: integer
+                        description: Total assets matching the filter, across all pages.
+                        example: 127
         "401":
           $ref: "#/components/responses/Unauthorized"
   /api/v1/media/{mediaId}:
@@ -1114,33 +1151,26 @@ paths:
         - Usage & Billing
       responses:
         "200":
-          description: Usage limits retrieved successfully
+          description: Usage retrieved successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  limits:
-                    type: object
-                    properties:
-                      storageBytes:
-                        type: integer
-                      folders:
-                        type: integer
-                      presets:
-                        type: integer
-                      transformations:
-                        type: integer
-                  usage:
-                    type: object
-                    properties:
-                      storageBytes:
-                        type: integer
-                      folders:
-                        type: integer
-                      presets:
-                        type: integer
-                      transformations:
-                        type: integer
+                  storageBytes:
+                    type: integer
+                    description: >
+                      Total bytes stored. Serialised as a string because the
+                      underlying column is a BIGINT.
+                    example: 170461024
+                  imageCount:
+                    type: integer
+                    example: 109
+                  fileCount:
+                    type: integer
+                    example: 19
+                  folderCount:
+                    type: integer
+                    example: 11
         "401":
           $ref: "#/components/responses/Unauthorized"

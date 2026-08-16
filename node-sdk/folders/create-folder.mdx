@@ -1,0 +1,62 @@
+---
+title: "Create Folder"
+description: "Create a folder with dreep.createFolder(), and set the access control assets inside will inherit."
+---
+
+```ts
+const launch = await dreep.createFolder({ path: "2026/q1/launch" });
+
+launch.id;   // pass to uploads as folderId
+launch.path; // "2026/q1/launch"
+```
+
+Uploads create folders on demand, so this is only necessary when the access control has to
+be set **before** anything lands in the folder.
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `name` | `string` | A single folder name. Mutually exclusive with `path` |
+| `path` | `string` | Slug path to create. Creates every missing segment and returns the leaf |
+| `parentId` | `string` | UUID of the parent to create `name` under |
+| `parentPath` | `string` | Path of an existing parent. Mutually exclusive with `parentId` |
+| `accessControlType` | `"public" \| "private" \| "signed"` | Defaults to `public` |
+| `defaultExpirySeconds` | `number` | Default link lifetime for a signed folder |
+| `signal` | `AbortSignal` | Cancels the request |
+
+Pass either `name` or `path`, not both. `path` can't be combined with `parentId` or
+`parentPath`, which would make the destination ambiguous.
+
+## Returns
+
+```ts
+{
+  id: "78b52933-…",
+  name: "launch",
+  slug: "launch",
+  path: "2026/q1/launch",
+  parentId: "3ba2c6aa-…",
+  accessControlType: "public",
+}
+```
+
+## Access control
+
+Every asset in the folder inherits this, as does every subfolder created beneath it.
+
+| Type | Who can fetch it |
+| :--- | :--- |
+| `public` | Anyone with the URL. The default |
+| `private` | Nobody through the public API — dashboard members only |
+| `signed` | Anyone holding an unexpired [signed URL](/node-sdk/media/signed-url) |
+
+```ts
+const avatars = await dreep.createFolder({
+  name: "Avatars",
+  accessControlType: "signed",
+  defaultExpirySeconds: 3600,
+});
+```
+
+See [Folders & Access](/security/folders) for the full model.

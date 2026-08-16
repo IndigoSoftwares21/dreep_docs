@@ -1,0 +1,27 @@
+---
+title: "List Presets"
+description: "List every saved transform preset with dreep.listPresets()."
+---
+
+```ts
+const presets = await dreep.listPresets();
+```
+
+## Parameters
+
+Takes no arguments beyond an optional `signal`.
+
+```ts
+await dreep.listPresets({ signal });
+```
+
+## Returns
+
+```ts
+[
+  { id: "…", key: "thumbnail", name: "Thumbnail", params: { width: 200, … } },
+]
+```
+
+Use `key` when applying a preset, and `id` when
+[deleting](/node-sdk/presets/delete-preset) one.

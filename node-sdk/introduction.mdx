@@ -1,0 +1,104 @@
+---
+title: "Introduction"
+description: "The official TypeScript SDK for the Dreep API — install, authenticate, and make your first call."
+---
+
+The `dreep` package wraps every endpoint in this reference, adds typed errors, and
+generates signed URLs correctly — including the one detail that is easy to get wrong by
+hand (see [Signed URLs](/node-sdk/media/signed-url)).
+
+- **Zero dependencies.** Built on native `fetch` and `node:crypto`.
+- **Fully typed.** Written in TypeScript, ships `.d.ts` — every transform parameter is
+  autocompleted and checked.
+- **ESM and CommonJS.** `import` and `require` both work.
+
+## Installation
+
+```bash
+npm install dreep
+```
+
+Requires Node.js 18 or later.
+
+## Authentication
+
+Create an API key on the **API Keys** page of your dashboard.
+
+```ts
+import { Dreep } from "dreep";
+
+const dreep = new Dreep({
+  apiKey: process.env.DREEP_API_KEY,               // required — "drp_live_…"
+  signingSecret: process.env.DREEP_SIGNING_SECRET, // optional — only for signedUrl()
+});
+```
+
+<Warning>
+  Your API key is a full-project credential and must stay server-side. It must never
+  appear in browser or mobile app code — anyone holding it can read, upload and delete
+  every asset in the project. The SDK throws on construction if it detects a browser.
+
+  To upload from a browser, use the [presigned upload](/node-sdk/upload/create-presigned-upload)
+  flow, where your backend hands the client a short-lived URL and the key never leaves
+  your server.
+</Warning>
+
+## Quickstart
+
+```ts
+import { Dreep } from "dreep";
+import fs from "node:fs";
+
+const dreep = new Dreep({ apiKey: process.env.DREEP_API_KEY });
+
+// Upload, resized and converted on the way in
+const asset = await dreep.upload({
+  file: fs.createReadStream("hero.jpg"),
+  folder: "marketing/2026",
+  transform: { width: 1200, format: "webp" },
+});
+
+asset.url;
+// https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.webp
+
+// Build a smaller variant — no network call
+dreep.url(asset, { width: 400 });
+// https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.webp?width=400
+```
+
+## Method reference
+
+| Method | Does | Endpoint |
+| :--- | :--- | :--- |
+| [`upload()`](/node-sdk/upload/upload-media) | Upload a file | `POST /upload` |
+| [`presignUpload()`](/node-sdk/upload/create-presigned-upload) | Start a direct-to-storage upload | `POST /upload/presign` |
+| [`confirmUpload()`](/node-sdk/upload/confirm-upload) | Finalize a presigned upload | `POST /upload/:id/confirm` |
+| [`url()`](/node-sdk/media/build-url) | Transform at delivery time | none — builds a string |
+| [`signedUrl()`](/node-sdk/media/signed-url) | Time-limited link for a signed folder | none — builds a string |
+| [`listMedia()`](/node-sdk/media/list-media) | List one page | `GET /media` |
+| [`listAllMedia()`](/node-sdk/media/list-all-media) | Iterate every page | `GET /media` |
+| [`deleteMedia()`](/node-sdk/media/delete-media) | Delete an asset | `DELETE /media/:id` |
+| [`createFolder()`](/node-sdk/folders/create-folder) | Create a folder | `POST /folders` |
+| [`listFolders()`](/node-sdk/folders/list-folders) | List folders | `GET /folders` |
+| [`createPreset()`](/node-sdk/presets/create-preset) | Save a named transform | `POST /presets` |
+| [`listPresets()`](/node-sdk/presets/list-presets) | List presets | `GET /presets` |
+| [`deletePreset()`](/node-sdk/presets/delete-preset) | Delete a preset | `DELETE /presets/:id` |
+| [`removeBackground()`](/node-sdk/bg-remove/remove-background) | Cut out the subject | `POST /bg-remove` |
+| [`extractText()`](/node-sdk/ocr/extract-text) | Run OCR | `POST /ocr` |
+| [`getUsage()`](/node-sdk/usage/get-usage) | Storage and object counts | `GET /usage` |
+
+Every method takes a single options object, so adding an argument never changes the order
+of the others.
+
+## Cancelling requests
+
+Requests time out after 30 seconds. Uploads don't — a large file can legitimately take
+minutes — so pass a `signal` when you want to bound one. Every method accepts it.
+
+```ts
+await dreep.upload({ file, signal: AbortSignal.timeout(120_000) });
+
+const controller = new AbortController();
+const pending = dreep.listMedia({ signal: controller.signal });
+controller.abort(); // throws DreepConnectionError
+```

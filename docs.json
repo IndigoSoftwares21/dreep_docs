@@ -128,6 +128,83 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Node SDK",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "node-sdk/introduction"
+            ]
+          },
+          {
+            "group": "Upload",
+            "icon": "cloud-arrow-up",
+            "pages": [
+              "node-sdk/upload/upload-media",
+              "node-sdk/upload/create-presigned-upload",
+              "node-sdk/upload/confirm-upload"
+            ]
+          },
+          {
+            "group": "OCR",
+            "icon": "text-size",
+            "pages": [
+              "node-sdk/ocr/extract-text"
+            ]
+          },
+          {
+            "group": "Background Removal",
+            "icon": "eraser",
+            "pages": [
+              "node-sdk/bg-remove/remove-background"
+            ]
+          },
+          {
+            "group": "Media",
+            "icon": "image",
+            "pages": [
+              "node-sdk/media/build-url",
+              "node-sdk/media/signed-url",
+              "node-sdk/media/list-media",
+              "node-sdk/media/list-all-media",
+              "node-sdk/media/delete-media"
+            ]
+          },
+          {
+            "group": "Folders",
+            "icon": "folder",
+            "pages": [
+              "node-sdk/folders/create-folder",
+              "node-sdk/folders/list-folders"
+            ]
+          },
+          {
+            "group": "Presets",
+            "icon": "sliders",
+            "pages": [
+              "node-sdk/presets/create-preset",
+              "node-sdk/presets/list-presets",
+              "node-sdk/presets/delete-preset"
+            ]
+          },
+          {
+            "group": "Usage & Billing",
+            "icon": "chart-simple",
+            "pages": [
+              "node-sdk/usage/get-usage"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "triangle-exclamation",
+            "pages": [
+              "node-sdk/errors"
+            ]
+          }
+        ]
       }
     ]
   },

@@ -1,0 +1,35 @@
+---
+title: "Remove Background"
+description: "Cut the subject out of an image with dreep.removeBackground(), keeping the alpha channel."
+---
+
+Returns a cutout of the subject with a transparent background, stored as a new asset.
+
+```ts
+const asset = await dreep.removeBackground({ file, folder: "products" });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `Buffer \| Readable \| Blob \| File` | **Required.** The image to cut out |
+| `filename` | `string` | Name to store it under |
+| `folder` | `string` | Slug path of the destination. Missing folders are created |
+| `folderId` | `string` | UUID of an existing folder |
+| `autoCreateFolders` | `boolean` | Set `false` to require the path already exists |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+The stored [asset](/node-sdk/upload/upload-media#returns).
+
+## Serving it on a background
+
+The alpha channel is preserved rather than flattened, so a single removal serves any
+number of background colours as ordinary transforms — and only the removal is billed.
+
+```ts
+dreep.url(asset, { bg: "ffffff" });
+dreep.url(asset, { bg: "000000" });
+```

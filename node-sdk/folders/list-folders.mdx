@@ -1,0 +1,46 @@
+---
+title: "List Folders"
+description: "List folders and their full paths with dreep.listFolders()."
+---
+
+```ts
+const { folders } = await dreep.listFolders();
+```
+
+With no filter this returns every folder in the project at any depth, each carrying its
+full `path` — enough to build the entire tree from one call.
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `path` | `string` | List the children of this folder path |
+| `parentId` | `string` | List the children of this folder UUID |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+```ts
+{
+  folders: [
+    {
+      id: "78b52933-…",
+      name: "q1",
+      slug: "q1",
+      path: "2026/q1",
+      parentId: "3ba2c6aa-…",
+      accessControlType: "public",
+    },
+  ],
+  currentFolder: { /* the folder named by path/parentId, or null */ },
+}
+```
+
+## Listing one level
+
+```ts
+const { folders, currentFolder } = await dreep.listFolders({ path: "avatars/2024" });
+```
+
+`currentFolder` is the folder the filter named, so one call gives you both a folder and
+its children. An unknown path returns an empty list rather than throwing.

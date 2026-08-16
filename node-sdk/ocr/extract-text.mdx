@@ -1,0 +1,44 @@
+---
+title: "Extract Text"
+description: "Run OCR over an image or PDF with dreep.extractText()."
+---
+
+Extracts text using OCR. With a destination folder the text is also stored as a `.txt`
+asset; without one it is returned only. See [Text Extraction](/guides/text-extraction).
+
+```ts
+const { text, blocks } = await dreep.extractText({ file });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `Buffer \| Readable \| Blob \| File` | **Required.** Image or PDF |
+| `filename` | `string` | Name to store the source under |
+| `folder` | `string` | Save the extracted text here. Missing folders are created |
+| `folderId` | `string` | UUID of an existing folder |
+| `autoCreateFolders` | `boolean` | Set `false` to require the path already exists |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+```ts
+{
+  text: "INVOICE\nAcme Ltd\n…",
+  blocks: [ /* line and word objects with bounding boxes */ ],
+  savedAsset: { id: "…", storageKey: "…" } | null,
+}
+```
+
+`blocks` carries positions, for when you need where the text sits rather than just the
+concatenated string. `savedAsset` is `null` unless a folder was given.
+
+## Reading an asset already in Dreep
+
+An uploaded asset doesn't need re-uploading — request the `txt` format instead:
+
+```ts
+const response = await fetch(dreep.url(asset, { format: "txt" }));
+const text = await response.text();
+```

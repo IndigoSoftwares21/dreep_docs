@@ -1,0 +1,82 @@
+---
+title: "Errors & Retries"
+description: "Typed errors, what the SDK retries, and what it deliberately does not."
+---
+
+Every failure throws a subclass of `DreepError`, carrying the HTTP status and the API's
+message. Catching `DreepError` catches all of them; the subclasses exist so you can branch
+on the cases worth handling differently without comparing status codes.
+
+```ts
+import { DreepError, DreepLimitError } from "dreep";
+
+try {
+  const asset = await dreep.upload({ file });
+  return asset.url;
+} catch (error) {
+  if (error instanceof DreepLimitError) {
+    // 402 — the plan ran out
+    console.log(error.featureKey, error.used, error.limit);
+  } else if (error instanceof DreepError) {
+    console.log(error.status, error.message);
+  }
+}
+```
+
+| Class | Status | Raised when |
+| :--- | :--- | :--- |
+| `DreepAuthError` | 401, 403 | Missing, malformed or revoked API key |
+| `DreepValidationError` | 400 | Invalid parameters — `error.validationErrors` lists each field |
+| `DreepNotFoundError` | 404 | Unknown asset, folder, preset or upload |
+| `DreepConflictError` | 409 | Confirming an upload whose bytes haven't landed yet |
+| `DreepLimitError` | 402 | Plan limit reached — carries `featureKey`, `used`, `limit` |
+| `DreepConnectionError` | — | Network failure, timeout, or an aborted signal |
+
+Anything unmapped surfaces as a plain `DreepError` with its `status` intact.
+
+## Validation errors
+
+A 400 carries the offending fields, so you can map them back onto a form:
+
+```ts
+catch (error) {
+  if (error instanceof DreepValidationError) {
+    for (const issue of error.validationErrors ?? []) {
+      console.log(issue.path.join("."), issue.message);
+    }
+  }
+}
+```
+
+## Plan limits
+
+A 402 means the project hit a ceiling — storage, transformations, folders, presets or
+seats. The metadata tells you which, without parsing the message:
+
+```ts
+catch (error) {
+  if (error instanceof DreepLimitError) {
+    console.log(`${error.featureKey}: ${error.used} of ${error.limit}`);
+  }
+}
+```
+
+## What gets retried
+
+Only `GET` requests are retried — twice, with exponential backoff, on a `429`, any `5xx`,
+or a connection failure.
+
+Writes are never retried automatically. A repeated upload would store a duplicate asset
+and bill a second transformation, and the SDK has no way to know whether a request that
+timed out actually reached the API. Retry those yourself, when your own logic makes it
+safe to.
+
+## Timeouts
+
+Requests time out after 30 seconds and throw `DreepConnectionError`. Uploads have no
+default timeout, because a large file legitimately takes longer than any number the SDK
+could pick. Bound them with a signal:
+
+```ts
+await dreep.upload({ file, signal: AbortSignal.timeout(120_000) });
+```

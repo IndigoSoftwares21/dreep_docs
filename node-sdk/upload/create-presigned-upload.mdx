@@ -1,0 +1,81 @@
+---
+title: "Create Presigned Upload"
+description: "Start a direct-to-storage upload with dreep.presignUpload(), for large files and browser clients."
+---
+
+Returns a short-lived URL to `PUT` the file bytes to. The file never passes through the
+Dreep API, which is what makes this the right path for large files — and the only safe way
+to upload from a browser, since your API key stays on your server.
+
+```ts
+const upload = await dreep.presignUpload({
+  filename: "video.mp4",
+  contentType: "video/mp4",
+  sizeBytes: 84_000_000,
+  folder: "uploads/2026",
+});
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `contentType` | `string` | **Required.** MIME type of the file |
+| `sizeBytes` | `number` | **Required.** Exact size in bytes |
+| `filename` | `string` | Optional when `key` supplies the name |
+| `folder` | `string` | Slug path of the destination. Missing folders are created |
+| `key` | `string` | Full S3-style object key |
+| `folderId` | `string` | UUID of an existing folder |
+| `autoCreateFolders` | `boolean` | Set `false` to require the path already exists |
+| `format` | `string` | Target format to re-encode to on confirm |
+| `presetKey` | `string` | A saved preset, applied on confirm |
+| `contentHash` | `string` | SHA-256 of the file — lets Dreep skip content it already has |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+```ts
+{
+  id: "2f928a3f-1d2a-4a2b",
+  uploadUrl: "https://…",   // absent when alreadyExists is true
+  contentType: "video/mp4",
+  alreadyExists: false,
+}
+```
+
+## The full flow
+
+```ts
+// 1. On your server
+const upload = await dreep.presignUpload({ filename, contentType, sizeBytes });
+
+// 2. Anywhere, including the browser
+await fetch(upload.uploadUrl, { method: "PUT", body: file });
+
+// 3. On your server
+const asset = await dreep.confirmUpload({ id: upload.id });
+```
+
+Until [`confirmUpload()`](/node-sdk/upload/confirm-upload) is called the asset stays
+`pending` and is excluded from media listings.
+
+<Warning>
+  The `PUT` must use the exact `contentType` and `sizeBytes` you presigned with — the
+  signature covers both. See [Uploading Media](/guides/uploading) for the underlying HTTP
+  flow.
+</Warning>
+
+## Skipping duplicate uploads
+
+Pass the file's SHA-256 as `contentHash`. If Dreep already stores that content, the
+response comes back with `alreadyExists: true` and no `uploadUrl` — skip the `PUT`.
+
+```ts
+const upload = await dreep.presignUpload({ contentType, sizeBytes, contentHash });
+
+if (!upload.alreadyExists) {
+  await fetch(upload.uploadUrl!, { method: "PUT", body: file });
+}
+
+const asset = await dreep.confirmUpload({ id: upload.id });
+```

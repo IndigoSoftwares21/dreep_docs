@@ -1,0 +1,31 @@
+---
+title: "Delete Preset"
+description: "Delete a saved transform preset with dreep.deletePreset()."
+---
+
+```ts
+await dreep.deletePreset({ id: preset.id });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | **Required.** UUID of the preset — not its `key` |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+Nothing. A successful call resolves; a failure throws.
+
+<Warning>
+  Assets already transformed with the preset keep working — the cached results are
+  unaffected. But any URL still passing `p=<key>` starts returning an error, so remove
+  those call sites first.
+</Warning>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | No preset with that id in this project |

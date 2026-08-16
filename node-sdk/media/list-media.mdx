@@ -1,0 +1,64 @@
+---
+title: "List Media"
+description: "List one page of media with dreep.listMedia(), with pagination totals."
+---
+
+```ts
+const { assets, pagination } = await dreep.listMedia({ page: 1, limit: 20 });
+
+pagination.total; // 127 — every asset matching the filter, across all pages
+```
+
+To walk every page without managing `page` yourself, use
+[`listAllMedia()`](/node-sdk/media/list-all-media).
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `page` | `number` | 1-based page number. Defaults to `1` |
+| `limit` | `number` | Assets per page. Defaults to `20` |
+| `folder` | `string` | Slug path to list. Mutually exclusive with `folderId` |
+| `folderId` | `string` | UUID of the folder to list |
+| `recursive` | `boolean` | With a folder filter, include every subfolder beneath it |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+```ts
+{
+  assets: [
+    {
+      id: "2f928a3f-1d2a-4a2b",
+      filename: "hero.webp",
+      url: "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b",
+      type: "image/webp",
+      sizeBytes: 56696,
+      assetType: "image",
+      folder: "avatars/2024",
+      folderId: "78b52933-…",
+      createdAt: "2026-08-12T19:13:43.473Z",
+    },
+  ],
+  pagination: { page: 1, limit: 20, total: 127 },
+}
+```
+
+`sizeBytes` is normalised to a number by the SDK — the API sends it as a string, since the
+underlying column is a `BIGINT`.
+
+Pass an item straight to [`url()`](/node-sdk/media/build-url) to transform it:
+
+```ts
+dreep.url(assets[0], { width: 200 });
+```
+
+## Filtering by folder
+
+```ts
+await dreep.listMedia({ folder: "avatars/2024", recursive: true });
+await dreep.listMedia({ folderId: "78b52933-…" });
+```
+
+Only assets with status `ready` are listed, so a presigned upload that hasn't been
+[confirmed](/node-sdk/upload/confirm-upload) won't appear.

@@ -1,0 +1,57 @@
+---
+title: "Signed URLs"
+description: "Generate a time-limited link with dreep.signedUrl() for assets in a signed folder."
+---
+
+Assets in a [signed folder](/security/folders) aren't fetchable with a bare URL.
+`signedUrl()` appends a time-limited `exp` and `sig` using your project's signing secret.
+
+```ts
+const dreep = new Dreep({ apiKey, signingSecret });
+
+dreep.signedUrl(asset, { expiresIn: 3600 });
+// …/fetch/2f928a3f-1d2a-4a2b?exp=1774118400&sig=a3f9e2b1…
+```
+
+## Signature
+
+```ts
+dreep.signedUrl(asset: { id, url }, options: { expiresIn, transform? }): string
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `asset` | `{ id, url }` | **Required.** The asset — the signature is computed over its id |
+| `expiresIn` | `number` | **Required.** Seconds from now until the link stops working |
+| `transform` | [`TransformParams`](/node-sdk/media/build-url#parameters) | Transform to sign alongside the asset |
+
+Requires `signingSecret` in the client config, or it throws `DreepError`. Find it on the
+**API Keys** page of your dashboard.
+
+Unlike [`url()`](/node-sdk/media/build-url), this takes the asset rather than a bare URL
+string, because the id is part of what gets signed.
+
+<Warning>
+  Anyone holding the link can fetch the asset until `exp` with no API key, so treat a
+  signed URL as a bearer token and keep expiries short.
+</Warning>
+
+## With a transform
+
+```ts
+dreep.signedUrl(asset, { expiresIn: 900, transform: { width: 800 } });
+```
+
+## Why not sign by hand
+
+When a signed URL carries a transform, the API doesn't verify the signature against the
+values you sent. It first snaps `width`, `height`, `quality` and `dpr` onto fixed
+breakpoints — the same ones that bound how many cached variants an asset can have — and
+verifies against **those**.
+
+So a hand-rolled link asking for `width=803` is signed against `803` while the API checks
+`828`, and the result is a `401` with nothing obviously wrong in the URL.
+
+The SDK applies the same snapping before signing, and its signatures are verified against
+the API's own signing code. If you do sign by hand, see
+[Signed URLs](/security/signed-urls) — and only for links without transforms.

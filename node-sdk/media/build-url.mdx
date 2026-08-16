@@ -1,0 +1,76 @@
+---
+title: "Delivery URLs"
+description: "Transform an asset at delivery time with dreep.url()."
+---
+
+Appends transform parameters to an asset's delivery URL. Pure string work — no network
+call, no API key — so it's safe in a render path.
+
+```ts
+dreep.url(asset, { width: 400, height: 400, fit: "cover", format: "webp" });
+// …/fetch/2f928a3f-1d2a-4a2b?fit=cover&format=webp&height=400&width=400
+```
+
+## Signature
+
+```ts
+dreep.url(target: Asset | string, transform?: TransformParams): string
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `target` | `Asset \| string` | **Required.** An asset, or a URL it previously returned |
+| `transform` | `TransformParams` | The transform to apply. Omit for the original |
+
+It never builds a URL from scratch. The delivery host and API version come from server
+configuration, so the only correct base is the one the API already returned. If you store
+URLs rather than whole assets, pass the string:
+
+```ts
+dreep.url(storedUrl, { width: 400 });
+```
+
+Transforms run on the fly and are cached, so one original serves every size you ask for.
+
+## Parameters
+
+| Parameter | Applies to | Description |
+| :--- | :--- | :--- |
+| `format` | image, video, audio | Output format. Also drives OCR (`txt`) and video thumbnails |
+| `width`, `height` | image, video | Target size in pixels, max 4000 |
+| `fit` | image, video | `cover`, `contain`, `fill`, `inside`, `outside` |
+| `quality` | image, video | 1–100 |
+| `gravity` | image | Crop anchor when resizing |
+| `crop` | image | Explicit crop, `left,top,width,height` |
+| `dpr` | image | Device pixel ratio multiplier, max 3 |
+| `rotate` | image | `90`, `180` or `270` |
+| `blur` | image | Blur sigma |
+| `bg` | image | Hex fill colour without `#`, e.g. `ffffff` |
+| `radius` | image | Corner radius in px, or `max` for a circle |
+| `trimStart`, `trimEnd` | video | Trim points in seconds |
+| `videoCodec` | video | `h264`, `vp8`, `vp9`, `hevc` |
+| `fps` | video | Output frame rate |
+| `preset` | image, video | A saved preset key, applied instead of individual fields |
+
+See [Image Transformations](/transformations/images) and
+[Video Transformations](/transformations/videos) for what each does.
+
+## Type safety
+
+Enum-like parameters are typed unions, so a wrong value is a compile error rather than a
+silently ignored query parameter:
+
+```ts
+dreep.url(asset, { fit: "squish" });  // Type error — not a Fit
+dreep.url(asset, { rotate: 45 });     // Type error — 90, 180 or 270
+```
+
+## Presets
+
+```ts
+dreep.url(asset, { preset: "thumbnail" });
+// …/fetch/2f928a3f-1d2a-4a2b?p=thumbnail
+```
+
+The SDK maps `preset` onto the `p` query parameter the API reads. See
+[createPreset()](/node-sdk/presets/create-preset).

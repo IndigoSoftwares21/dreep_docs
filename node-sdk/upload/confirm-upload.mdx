@@ -1,0 +1,44 @@
+---
+title: "Confirm Upload"
+description: "Finalize a presigned upload with dreep.confirmUpload() once its bytes are in storage."
+---
+
+Verifies the object exists, reads its metadata, applies any transform, and flips the asset
+to `ready`. Until this is called the asset stays `pending` and is excluded from media
+listings.
+
+```ts
+const asset = await dreep.confirmUpload({ id: upload.id });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | **Required.** The `id` returned by [`presignUpload()`](/node-sdk/upload/create-presigned-upload) |
+| `transform` | [`TransformParams`](/node-sdk/media/build-url#parameters) | Applied before the asset goes `ready` |
+| `presetKey` | `string` | A saved preset, applied instead of `transform` |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+The stored [asset](/node-sdk/upload/upload-media#returns), identical in shape to what
+`upload()` resolves to.
+
+## Transforming on confirm
+
+```ts
+const asset = await dreep.confirmUpload({
+  id: upload.id,
+  transform: { width: 1200, format: "webp" },
+});
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepConflictError` | The bytes haven't finished uploading to storage yet |
+| `DreepNotFoundError` | No presigned upload with that id |
+
+A `DreepConflictError` means the `PUT` hasn't landed — retry the confirm, not the upload.

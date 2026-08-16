@@ -1,0 +1,38 @@
+---
+title: "Delete Media"
+description: "Delete an asset and everything derived from it with dreep.deleteMedia()."
+---
+
+```ts
+await dreep.deleteMedia({ id: asset.id });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | **Required.** UUID of the asset |
+| `signal` | `AbortSignal` | Cancels the request |
+
+## Returns
+
+Nothing. A successful call resolves; a failure throws.
+
+## What gets removed
+
+The original leaves storage along with every cached transform derived from it, and the
+space is credited back against your plan's storage quota.
+
+<Warning>
+  Deletion is immediate and permanent. Any URL already handed out — including unexpired
+  [signed URLs](/node-sdk/media/signed-url) — stops resolving.
+</Warning>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | No asset with that id in this project |
+
+Deleting is not retried automatically. A `DreepNotFoundError` on a retry usually means the
+first attempt succeeded.

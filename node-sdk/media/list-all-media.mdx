@@ -1,0 +1,49 @@
+---
+title: "List All Media"
+description: "Iterate every asset across every page with dreep.listAllMedia()."
+---
+
+Pages for you and yields assets one at a time.
+
+```ts
+for await (const asset of dreep.listAllMedia({ folder: "avatars" })) {
+  console.log(asset.filename, asset.url);
+}
+```
+
+## Parameters
+
+The same as [`listMedia()`](/node-sdk/media/list-media), minus `page` — it's managed for
+you.
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `limit` | `number` | Assets fetched per request. Defaults to `20` |
+| `folder` | `string` | Slug path to list. Mutually exclusive with `folderId` |
+| `folderId` | `string` | UUID of the folder to list |
+| `recursive` | `boolean` | With a folder filter, include every subfolder beneath it |
+| `signal` | `AbortSignal` | Cancels in-flight requests |
+
+## Returns
+
+An `AsyncGenerator` of media items, each identical to a
+[`listMedia()`](/node-sdk/media/list-media#returns) entry.
+
+## Lazy by design
+
+The next page is requested only when you ask for the item after the last one yielded, so
+breaking out of the loop stops the requests too:
+
+```ts
+for await (const asset of dreep.listAllMedia({ folder: "avatars" })) {
+  if (asset.filename.endsWith(".pdf")) {
+    return asset; // no further pages are fetched
+  }
+}
+```
+
+Raising `limit` trades memory for fewer round trips on large projects:
+
+```ts
+dreep.listAllMedia({ folder: "avatars", limit: 100 });
+```
