@@ -22,7 +22,7 @@ const upload = await dreep.presignUpload({
 | :--- | :--- | :--- |
 | `contentType` | `string` | **Required.** MIME type of the file |
 | `sizeBytes` | `number` | **Required.** Exact size in bytes |
-| `filename` | `string` | Optional when `key` supplies the name |
+| `filename` | `string` | Optional — `key` can supply it instead, or leave both out and Dreep generates one |
 | `folder` | `string` | Slug path of the destination. Missing folders are created |
 | `key` | `string` | Full S3-style object key |
 | `folderId` | `string` | UUID of an existing folder |

@@ -307,17 +307,22 @@ paths:
     post:
       summary: Create Presigned Upload
       description: >
-        Start a direct-to-storage upload. Dreep returns a short-lived
-        `uploadUrl`; `PUT` the file bytes straight to it, then call
+        Start a streaming upload. Dreep returns a short-lived `uploadUrl`;
+        `PUT` the file bytes straight to it, then call
         [Confirm Upload](/api-reference/upload/confirm-upload) with the returned
         `id` to finalize the asset.
 
 
         Use this instead of [Upload Media](/api-reference/upload/upload-media)
-        for large files or browser uploads — the bytes never pass through the
-        Dreep API. The destination folder is resolved exactly as it is for a
-        direct upload, including creating missing folders from a `folder` path
-        or `key`.
+        for large files or browser uploads — the relay streams bytes straight
+        through without buffering, so there's no size ceiling like the
+        single-request multipart endpoint has. The destination folder is
+        resolved exactly as it is for a direct upload, including creating
+        missing folders from a `folder` path or `key`.
+
+
+        `filename` is optional — `key`'s last segment supplies it, and if you
+        provide neither, Dreep generates a name for you.
 
 
         If `contentHash` matches an asset Dreep already stores, the response
@@ -335,8 +340,9 @@ paths:
                 filename:
                   type: string
                   description: >
-                    Name to store the file under. Optional when `key` is given,
-                    since the key's last segment supplies it.
+                    Name to store the file under. Optional if `key` is given
+                    (its last segment supplies it), or if omitted entirely a
+                    name is generated for you.
                   example: "me.webp"
                 contentType:
                   type: string

@@ -3,7 +3,7 @@ title: "Uploading Media"
 description: "How to upload files directly to Dreep Storage using Presigned URLs."
 ---
 
-Dreep uses a highly efficient, two-step upload process that allows your users (or your backend) to upload files directly to the underlying Dreep storage edge. This completely bypasses the primary Dreep API server, preventing bottlenecks and eliminating strict file-size limits on the API layer.
+Dreep uses a highly efficient, two-step upload process that allows your users (or your backend) to upload files through a dedicated streaming relay. The relay never buffers the file in memory — bytes are piped straight through to storage as they arrive — so there's no size ceiling like the single-request multipart endpoint has.
 
 <Note>
 For files you're happy to send through the API, a single multipart
@@ -20,6 +20,23 @@ The destination is named exactly the same way as a direct upload: a `folder`
 path, a full `key`, or a `folderId`. Missing folders are created for you — see
 [Folders & Paths](/guides/folders-and-paths).
 
+`filename` is optional — `key` doubles as both the filename and the folder
+path, and if you provide neither, Dreep generates a name for you. Naming by
+`key` alone (no `filename`):
+
+```bash
+curl -X POST https://api.dreep.cloud/api/v1/upload/presign \
+  -H "Authorization: Bearer drp_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key": "launch/2024/video.mp4",
+    "contentType": "video/mp4",
+    "sizeBytes": 52428800
+  }'
+```
+
+Or naming by `filename` with a separate `folder`:
+
 ```bash
 curl -X POST https://api.dreep.cloud/api/v1/upload/presign \
   -H "Authorization: Bearer drp_live_xxxxx" \
@@ -32,12 +49,14 @@ curl -X POST https://api.dreep.cloud/api/v1/upload/presign \
   }'
 ```
 
-The API will return an `uploadUrl` and a tracking `id`.
+The API will return an `uploadUrl` and a tracking `id`. The `uploadUrl` is a
+single-use link, valid for 10 minutes — treat it as opaque and don't try to
+parse or reuse it.
 
 ```json
 {
   "id": "2f928a3f-1d2a-4a2b-8a8b-123456789abc",
-  "uploadUrl": "https://cdn.dreep.cloud/..."
+  "uploadUrl": "https://cdn.dreep.cloud/api/v1/upload/2f928a3f-1d2a-4a2b-8a8b-123456789abc"
 }
 ```
 
@@ -80,7 +99,7 @@ console.log("Upload successful! File ID is:", id);
 import requests
 
 # 1. Get the presigned URL
-upload_url = "https://cdn.dreep.cloud/..."
+upload_url = "https://cdn.dreep.cloud/api/v1/upload/2f928a3f-1d2a-4a2b-8a8b-123456789abc"
 file_path = "video.mp4"
 mime_type = "video/mp4"
 
