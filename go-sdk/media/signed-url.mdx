@@ -1,0 +1,67 @@
+---
+title: "Signed URLs"
+description: "Generate a time-limited link with client.SignedURL() for assets in a signed folder."
+---
+
+Assets in a [signed folder](/security/folders) aren't fetchable with a bare URL.
+`SignedURL` appends a time-limited `exp` and `sig` computed locally with your project's
+signing secret. No network call is made.
+
+```go
+client, err := dreep.New(apiKey, dreep.WithSigningSecret(signingSecret))
+
+signed, err := client.SignedURL(asset.ID, time.Hour, nil)
+// https://cdn.dreep.cloud/api/v1/fetch/<id>?exp=1774118400&sig=a3f9e2b1…
+```
+
+## Signature
+
+```go
+func (c *Client) SignedURL(assetID string, ttl time.Duration, t *dreep.Transform) (string, error)
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `assetID` | `string` | **Required.** The asset's `ID` |
+| `ttl` | `time.Duration` | **Required.** How long until the link stops working |
+| `t` | [`*dreep.Transform`](/go-sdk/media/build-url#transform-fields) | Pass `nil`. Transformed signed links are not supported by the Go SDK yet (see below) |
+
+Returns `dreep.ErrNoSigningSecret` if the client was built without
+`dreep.WithSigningSecret`. Find the secret on the **API Keys** page of your dashboard.
+
+<Warning>
+  Anyone holding the link can fetch the asset until `exp` with no API key, so treat a
+  signed URL as a bearer token and keep TTLs short.
+</Warning>
+
+## Transforms on signed URLs
+
+<Warning>
+  Pass `nil` as the transform. The Go SDK currently signs only `<assetID>:<exp>`, but when a
+  signed URL carries transform parameters Dreep verifies a signature that also covers those
+  parameters, so a Go-signed transformed link is rejected with `401`. Until the SDK is updated,
+  sign transformed links with the [Node SDK](/node-sdk/introduction).
+</Warning>
+
+## What is signed
+
+The signature is an HMAC-SHA256 hex digest of `<assetID>:<exp>`, keyed with the URL
+Signing Secret. It locks the asset and the expiry, matching the scheme documented in
+[Signed URLs](/security/signed-urls).
+
+## Serving signed assets from a handler
+
+A common pattern is a handler that checks your own authorisation, then redirects to a
+short-lived link:
+
+```go
+mux.HandleFunc("GET /files/{id}", func(w http.ResponseWriter, r *http.Request) {
+    // Check the signed-in user may see this asset first.
+    signed, err := client.SignedURL(r.PathValue("id"), 5*time.Minute, nil)
+    if err != nil {
+        http.Error(w, "unavailable", http.StatusInternalServerError)
+        return
+    }
+    http.Redirect(w, r, signed, http.StatusFound)
+})
+```

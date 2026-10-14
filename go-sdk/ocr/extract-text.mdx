@@ -1,0 +1,82 @@
+---
+title: "Extract Text"
+description: "Run OCR over an image or PDF with client.UploadAndExtractText() or client.ExtractText()."
+---
+
+Extracts text using OCR. With a destination folder the text is also stored as a `.txt`
+asset; without one it is returned only. See [Text Extraction](/guides/text-extraction).
+
+```go
+f, err := os.Open("invoice.pdf")
+if err != nil {
+    return err
+}
+defer f.Close()
+
+result, err := client.UploadAndExtractText(ctx, f, "invoice.pdf", nil)
+fmt.Println(result.Text)
+```
+
+## Signature
+
+```go
+func (c *Client) UploadAndExtractText(ctx context.Context, file io.Reader, filename string, o *dreep.UploadAndExtractOptions) (*dreep.OCRResult, error)
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `io.Reader` | **Required.** Image or PDF |
+| `filename` | `string` | **Required.** Name of the source file |
+| `o` | `*dreep.UploadAndExtractOptions` | Optional. Pass `nil` to return the text only |
+
+### `UploadAndExtractOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `Destination` | [`dreep.Destination`](/go-sdk/upload/upload-media#destination) | Embedded. Set `Folder` or `FolderID` to save the text |
+| `AutoCreateFolders` | `*bool` | Set `dreep.Ptr(false)` to require the path already exists |
+
+## Returns
+
+```go
+type OCRResult struct {
+    Text       string
+    Blocks     []map[string]any       // line and word objects with bounding boxes
+    SavedAsset *dreep.SavedTextAsset  // ID, StorageKey; nil unless a folder was given
+}
+```
+
+`Blocks` carries positions, for when you need where the text sits rather than just the
+concatenated string.
+
+```go
+result, err := client.UploadAndExtractText(ctx, f, "receipt.jpg", &dreep.UploadAndExtractOptions{
+    Destination: dreep.Destination{Folder: "receipts/2026"},
+})
+
+result.SavedAsset.ID // the stored .txt asset
+```
+
+## Reading an asset already in Dreep
+
+An uploaded asset doesn't need re-uploading. `ExtractText` fetches it in the `txt` format
+and returns the plain text:
+
+```go
+func (c *Client) ExtractText(ctx context.Context, mediaID string, o *dreep.TextOptions) (string, error)
+```
+
+```go
+text, err := client.ExtractText(ctx, asset.ID, nil)
+```
+
+Results are cached, so repeat reads of the same asset don't run OCR again. For an asset in
+a signed folder, set `SigningTTL` and the SDK attaches `exp` and `sig` using your signing
+secret:
+
+```go
+text, err := client.ExtractText(ctx, asset.ID, &dreep.TextOptions{SigningTTL: time.Minute})
+```
+
+OCR is billed per page. See [Errors & Retries](/go-sdk/errors#plan-limits) for what happens
+when the quota runs out.

@@ -1,0 +1,70 @@
+---
+title: "Create Folder"
+description: "Create a folder with client.CreateFolder(), and set the access control assets inside will inherit."
+---
+
+```go
+launch, err := client.CreateFolder(ctx, dreep.CreateFolderOptions{Path: "2026/q1/launch"})
+
+launch.ID   // pass to uploads as Destination.FolderID
+launch.Path // "2026/q1/launch"
+```
+
+Uploads create folders on demand, so this is only necessary when the access control has to
+be set **before** anything lands in the folder. The call is idempotent: existing segments
+are reused.
+
+## Signature
+
+```go
+func (c *Client) CreateFolder(ctx context.Context, o dreep.CreateFolderOptions) (*dreep.Folder, error)
+```
+
+## `CreateFolderOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `Name` | `string` | A single folder name |
+| `Path` | `string` | Slug path to create. Creates every missing segment and returns the leaf |
+| `ParentID` | `string` | UUID of the parent to create `Name` under |
+| `ParentPath` | `string` | Path of an existing parent to create `Name` under |
+| `AccessControlType` | `dreep.AccessControlType` | `dreep.AccessPublic` (default), `dreep.AccessPrivate`, `dreep.AccessSigned` |
+| `DefaultExpirySeconds` | `int` | Default link lifetime for a signed folder, used by links generated in the dashboard |
+
+Set either `Name` or `Path`. `Path` can't be combined with `ParentID` or `ParentPath`; the
+SDK returns an error before sending the request if it is.
+
+## Returns
+
+```go
+type Folder struct {
+    ID                string
+    Name              string
+    Slug              string
+    Path              string // full slug path from the project root
+    ParentID          string
+    AccessControlType string
+}
+```
+
+## Access control
+
+Every asset in the folder inherits this, as does every subfolder created beneath it.
+
+| Type | Who can fetch it |
+| :--- | :--- |
+| `AccessPublic` | Anyone with the URL. The default |
+| `AccessPrivate` | Nobody through the public API — dashboard members only |
+| `AccessSigned` | Anyone holding an unexpired [signed URL](/go-sdk/media/signed-url) |
+
+```go
+avatars, err := client.CreateFolder(ctx, dreep.CreateFolderOptions{
+    Name:                 "Avatars",
+    AccessControlType:    dreep.AccessSigned,
+    DefaultExpirySeconds: 3600,
+})
+```
+
+`DefaultExpirySeconds` doesn't affect [`SignedURL`](/go-sdk/media/signed-url), which always
+sets `exp` from the TTL you pass. See [Folders & Access](/security/folders) for the full
+model.

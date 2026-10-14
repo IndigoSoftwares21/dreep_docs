@@ -1,0 +1,63 @@
+---
+title: "List Media"
+description: "List one page of media with client.ListMedia(), with pagination totals."
+---
+
+```go
+page, err := client.ListMedia(ctx, &dreep.ListMediaOptions{Page: 1, Limit: 20})
+
+page.Pagination.Total // every asset matching the filter, across all pages
+```
+
+To walk every page without managing `Page` yourself, use
+[`ListAllMedia`](/go-sdk/media/list-all-media).
+
+## Signature
+
+```go
+func (c *Client) ListMedia(ctx context.Context, o *dreep.ListMediaOptions) (*dreep.MediaPage, error)
+```
+
+Pass `nil` for the first page with default settings.
+
+## `ListMediaOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `Page` | `int` | 1-based page number |
+| `Limit` | `int` | Assets per page |
+| `Folder` | `string` | Slug path to list. Mutually exclusive with `FolderID` |
+| `FolderID` | `string` | UUID of the folder to list |
+| `Recursive` | `bool` | With a folder filter, include every subfolder beneath it |
+
+## Returns
+
+```go
+type MediaPage struct {
+    Assets     []*dreep.MediaAsset
+    Pagination dreep.Pagination // Page, Limit, Total
+}
+```
+
+Each listed asset fills `ID`, `Filename`, `URL`, `Type` (MIME type), `SizeBytes`,
+`AssetType` (`"image"`, `"video"` or `"file"`), `Folder`, `FolderID` and `CreatedAt`.
+Read `SizeBytes` with `.Int64()`.
+
+Pass an item's `ID` straight to [`URL`](/go-sdk/media/build-url) to transform it:
+
+```go
+client.URL(page.Assets[0].ID, &dreep.Transform{Width: 200})
+```
+
+## Filtering by folder
+
+```go
+client.ListMedia(ctx, &dreep.ListMediaOptions{Folder: "avatars/2024", Recursive: true})
+client.ListMedia(ctx, &dreep.ListMediaOptions{FolderID: "78b52933-…"})
+```
+
+An unknown folder path returns a 400 (`dreep.IsInvalidRequest`), so a typo doesn't look
+like an empty folder.
+
+Only assets with status `ready` are listed, newest first, so a presigned upload that hasn't
+been [confirmed](/go-sdk/upload/confirm-upload) won't appear.

@@ -1,0 +1,56 @@
+---
+title: "List All Media"
+description: "Walk every asset across every page with client.ListAllMedia()."
+---
+
+Pages for you and calls a function once per asset.
+
+```go
+err := client.ListAllMedia(ctx, &dreep.ListMediaOptions{Folder: "avatars"},
+    func(a *dreep.MediaAsset) error {
+        fmt.Println(a.Filename, a.URL)
+        return nil
+    })
+```
+
+## Signature
+
+```go
+func (c *Client) ListAllMedia(ctx context.Context, o *dreep.ListMediaOptions, fn func(*dreep.MediaAsset) error) error
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `o` | [`*dreep.ListMediaOptions`](/go-sdk/media/list-media#listmediaoptions) | Filters. `Page` seeds the walk (default `1`); `Limit` sets the page size |
+| `fn` | `func(*dreep.MediaAsset) error` | **Required.** Called for each asset in order |
+
+## Stopping early
+
+Return an error from `fn` to stop. No further pages are requested, and `ListAllMedia`
+returns that error unchanged:
+
+```go
+var errFound = errors.New("found")
+var match *dreep.MediaAsset
+
+err := client.ListAllMedia(ctx, &dreep.ListMediaOptions{Folder: "avatars"},
+    func(a *dreep.MediaAsset) error {
+        if strings.HasSuffix(a.Filename, ".pdf") {
+            match = a
+            return errFound
+        }
+        return nil
+    })
+if err != nil && !errors.Is(err, errFound) {
+    return err
+}
+```
+
+Raising `Limit` trades memory for fewer round trips on large projects:
+
+```go
+client.ListAllMedia(ctx, &dreep.ListMediaOptions{Folder: "avatars", Limit: 100}, fn)
+```
+
+Each page request is retried on `429` and `5xx` like any other read — see
+[Errors & Retries](/go-sdk/errors).

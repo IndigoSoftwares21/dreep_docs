@@ -1,0 +1,46 @@
+---
+title: "Usage"
+description: "Storage consumed and object counts with client.GetUsage()."
+---
+
+```go
+usage, err := client.GetUsage(ctx)
+```
+
+## Signature
+
+```go
+func (c *Client) GetUsage(ctx context.Context) (*dreep.Usage, error)
+```
+
+Takes no arguments beyond the context.
+
+## Returns
+
+```go
+type Usage struct {
+    StorageBytes flexInt64 // read with .Int64()
+    ImageCount   int
+    FileCount    int
+    FolderCount  int
+}
+```
+
+The API sends `storageBytes` as a string, since the underlying column is a `BIGINT`. The
+SDK decodes either form.
+
+## Reporting
+
+```go
+usage, err := client.GetUsage(ctx)
+if err != nil {
+    return err
+}
+
+gb := float64(usage.StorageBytes.Int64()) / (1 << 30)
+fmt.Printf("%.2f GB across %d assets\n", gb, usage.ImageCount+usage.FileCount)
+```
+
+To find out what happens when a plan limit is reached, see
+[Plan limits](/go-sdk/errors#plan-limits) — `dreep.FeatureLimit` reports the feature, and
+the error carries the ceiling and current consumption at the moment a request was rejected.

@@ -1,0 +1,53 @@
+---
+title: "List Folders"
+description: "List folders and their full paths with client.ListFolders()."
+---
+
+```go
+list, err := client.ListFolders(ctx, nil)
+
+for _, f := range list.Folders {
+    fmt.Println(f.Path)
+}
+```
+
+With no filter this returns every folder in the project at any depth, each carrying its
+full `Path` — enough to build the entire tree from one call.
+
+## Signature
+
+```go
+func (c *Client) ListFolders(ctx context.Context, o *dreep.ListFoldersOptions) (*dreep.FolderList, error)
+```
+
+## `ListFoldersOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `Path` | `string` | List the direct children of this folder path |
+| `ParentID` | `string` | List the direct children of this folder UUID |
+| `RootOnly` | `bool` | List only root folders. Can't be combined with `Path` or `ParentID` |
+
+## Returns
+
+```go
+type FolderList struct {
+    Folders       []dreep.Folder
+    CurrentFolder *dreep.Folder // the folder named by Path/ParentID, or nil
+}
+```
+
+Each [`Folder`](/go-sdk/folders/create-folder#returns) carries `ID`, `Name`, `Slug`,
+`Path`, `ParentID` and `AccessControlType`.
+
+## Listing one level
+
+```go
+list, err := client.ListFolders(ctx, &dreep.ListFoldersOptions{Path: "avatars/2024"})
+
+list.CurrentFolder // the avatars/2024 folder itself
+list.Folders       // its children
+```
+
+`CurrentFolder` is the folder the filter named, so one call gives you both a folder and its
+children.

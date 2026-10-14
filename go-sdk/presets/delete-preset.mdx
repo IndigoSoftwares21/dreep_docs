@@ -1,0 +1,34 @@
+---
+title: "Delete Preset"
+description: "Delete a saved transform preset with client.DeletePreset()."
+---
+
+```go
+err := client.DeletePreset(ctx, preset.ID)
+```
+
+## Signature
+
+```go
+func (c *Client) DeletePreset(ctx context.Context, id string) error
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | **Required.** UUID of the preset — not its `Key` |
+
+## Returns
+
+`nil` on success, an error otherwise.
+
+<Warning>
+  Assets already transformed with the preset keep working — the cached results are
+  unaffected. But any URL still passing `p=<key>` starts returning an error, so remove
+  those call sites first.
+</Warning>
+
+## Errors
+
+| Check | Cause |
+| :--- | :--- |
+| `dreep.IsNotFound(err)` | No preset with that id in this project |

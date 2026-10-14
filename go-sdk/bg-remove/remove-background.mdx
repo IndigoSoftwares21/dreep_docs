@@ -1,0 +1,66 @@
+---
+title: "Remove Background"
+description: "Cut the subject out of an image with client.RemoveBackground(), keeping the alpha channel."
+---
+
+Uploads an image and stores a cutout of the subject with a transparent background as a new
+asset.
+
+```go
+f, err := os.Open("shoe.png")
+if err != nil {
+    return err
+}
+defer f.Close()
+
+result, err := client.RemoveBackground(ctx, f, "shoe.png", &dreep.RemoveBackgroundOptions{
+    Destination: dreep.Destination{Folder: "products"},
+})
+```
+
+## Signature
+
+```go
+func (c *Client) RemoveBackground(ctx context.Context, file io.Reader, filename string, o *dreep.RemoveBackgroundOptions) (*dreep.RemoveBackgroundResult, error)
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `io.Reader` | **Required.** The image to cut out |
+| `filename` | `string` | **Required.** Name of the source file |
+| `o` | `*dreep.RemoveBackgroundOptions` | Optional. Pass `nil` for defaults |
+
+### `RemoveBackgroundOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `Format` | `dreep.Format` | Output format. PNG keeps transparency |
+| `Destination` | [`dreep.Destination`](/go-sdk/upload/upload-media#destination) | Embedded. `Folder` or `FolderID` |
+| `AutoCreateFolders` | `*bool` | Set `dreep.Ptr(false)` to require the path already exists |
+
+## Returns
+
+```go
+type RemoveBackgroundResult struct {
+    Asset dreep.CutoutAsset // ID, StorageKey, URL, Format, Width, Height, SizeBytes
+}
+```
+
+## Serving it on a background
+
+The alpha channel is preserved rather than flattened, so a single removal serves any
+number of background colours as ordinary transforms — and only the removal is billed.
+
+```go
+white := client.URL(result.Asset.ID, &dreep.Transform{BG: "ffffff"})
+black := client.URL(result.Asset.ID, &dreep.Transform{BG: "000000"})
+```
+
+## Errors
+
+| Check | Cause |
+| :--- | :--- |
+| `dreep.IsPaymentRequired(err)` | No background-removal credits remain |
+| `dreep.IsInvalidRequest(err)` | The file isn't a supported image |
+
+Like every upload, this is never retried automatically.

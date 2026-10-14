@@ -1,0 +1,130 @@
+---
+title: "Upload Media"
+description: "Upload a file with client.Upload(), optionally transforming it before storage."
+---
+
+Streams a file through the Dreep API as a multipart upload. The simplest option — for very
+large files, or uploads that originate in a browser, use
+[`PresignUpload`](/go-sdk/upload/create-presigned-upload).
+
+```go
+f, err := os.Open("hero.jpg")
+if err != nil {
+    return err
+}
+defer f.Close()
+
+asset, err := client.Upload(ctx, dreep.UploadOptions{
+    File:        f,
+    Filename:    "hero.jpg",
+    Destination: dreep.Destination{Folder: "marketing/2026"},
+})
+```
+
+## Signature
+
+```go
+func (c *Client) Upload(ctx context.Context, o dreep.UploadOptions) (*dreep.MediaAsset, error)
+```
+
+## `UploadOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `File` | `io.Reader` | **Required.** The file to upload. Streamed, never buffered in full |
+| `Filename` | `string` | **Required.** Name to store it under |
+| `ContentType` | `string` | Explicit MIME type for the file part |
+| `Destination` | `dreep.Destination` | Embedded. Where the asset lands — see below |
+| `AutoCreateFolders` | `*bool` | Set `dreep.Ptr(false)` to require the path already exists |
+| `Transform` | [`*dreep.Transform`](/go-sdk/media/build-url#transform-fields) | Applied **before** storage |
+| `KnownSize` | `int64` | Size of `File` in bytes. Sets an exact `Content-Length` instead of chunked encoding |
+
+### `Destination`
+
+```go
+type Destination struct {
+    Folder   string // slug path; missing folders are created
+    Key      string // full S3-style key; last segment is the filename
+    FolderID string // UUID of an existing folder
+}
+```
+
+Set at most one field. Setting more returns an error before any request is made. Leave
+all three empty and the asset lands in the project's default folder. See
+[Folders & Paths](/guides/folders-and-paths) for how paths resolve.
+
+## Returns
+
+A `*dreep.MediaAsset`:
+
+```go
+type MediaAsset struct {
+    ID               string
+    URL              string
+    OriginalFilename string    // upload shape
+    Mimetype         string    // upload shape
+    Format           string
+    SizeBytes        flexInt64 // read with .Int64()
+    Width, Height    int       // images only
+    Status           string    // "ready"
+    FolderID         string
+    ProjectID        string
+    CreatedAt        time.Time
+    // Filename, Type, AssetType and Folder are filled by listings
+}
+```
+
+<Note>
+  The API sends `sizeBytes` as a string, because Postgres `BIGINT` columns serialise that
+  way over JSON. The SDK decodes either form; call `asset.SizeBytes.Int64()` for the value.
+</Note>
+
+## Transforming on upload
+
+Anything in `Transform` is applied before storage, so the transformed result is what gets
+stored and returned. The original is not kept.
+
+```go
+asset, err := client.Upload(ctx, dreep.UploadOptions{
+    File:      f,
+    Filename:  "hero.jpg",
+    Transform: &dreep.Transform{Width: 800, Format: dreep.FormatWebP, Quality: 80},
+})
+
+asset.Width  // 800
+asset.Format // "webp"
+```
+
+Apply a saved preset with `Transform: &dreep.Transform{Preset: "thumbnail"}`.
+
+This counts against your plan's monthly transformation quota. Transforming at delivery
+time with [`URL`](/go-sdk/media/build-url) instead keeps the original intact and serves any
+number of variants from it.
+
+## Streaming large files
+
+`Upload` writes the multipart body through an `io.Pipe`, so the file is streamed rather
+than read into memory. When you know the size, pass `KnownSize` so the request carries an
+exact `Content-Length`:
+
+```go
+fi, _ := f.Stat()
+
+asset, err := client.Upload(ctx, dreep.UploadOptions{
+    File:      f,
+    Filename:  fi.Name(),
+    KnownSize: fi.Size(),
+})
+```
+
+If `KnownSize` doesn't match the bytes actually read, the request fails.
+
+## Errors
+
+| Check | Cause |
+| :--- | :--- |
+| `dreep.IsNotFound(err)` | `AutoCreateFolders` is `false` and the path doesn't exist |
+| `dreep.IsPaymentRequired(err)` | Storage or transformation quota reached |
+| `dreep.IsInvalidRequest(err)` | Unsupported file type, or an invalid transform |
+
+Uploads are never retried automatically — see [Errors & Retries](/go-sdk/errors).

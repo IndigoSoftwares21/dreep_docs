@@ -1,0 +1,167 @@
+---
+title: "Create Presigned Upload"
+description: "Start a direct-to-storage upload with client.PresignUpload(), or run the whole flow with UploadPresigned()."
+---
+
+Returns a short-lived URL to `PUT` the file bytes to. The file never passes through the
+Dreep API, which makes this the right path for large files, and the only safe way to upload
+from a browser, since your API key stays on your server.
+
+```go
+upload, err := client.PresignUpload(ctx, dreep.PresignOptions{
+    Filename:    "video.mp4",
+    ContentType: "video/mp4",
+    SizeBytes:   84_000_000,
+    Destination: dreep.Destination{Folder: "uploads/2026"},
+})
+```
+
+## Signature
+
+```go
+func (c *Client) PresignUpload(ctx context.Context, o dreep.PresignOptions) (*dreep.PresignedUpload, error)
+```
+
+## `PresignOptions`
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `ContentType` | `string` | **Required.** MIME type of the file |
+| `SizeBytes` | `int64` | **Required.** Exact size in bytes, must be positive |
+| `Filename` | `string` | Optional when `Destination.Key` is set |
+| `Destination` | [`dreep.Destination`](/go-sdk/upload/upload-media#destination) | Embedded. `Folder`, `Key` or `FolderID` |
+| `AutoCreateFolders` | `*bool` | Set `dreep.Ptr(false)` to require the path already exists |
+| `Format` | `dreep.Format` | Target format to re-encode to on confirm |
+| `PresetKey` | `string` | A saved preset, applied on confirm |
+| `ContentHash` | `string` | Hex SHA-256 of the file — lets Dreep skip content it already has |
+
+## Returns
+
+```go
+type PresignedUpload struct {
+    ID            string
+    UploadURL     string // empty when AlreadyExists is true
+    ContentType   string
+    AlreadyExists bool
+}
+```
+
+The upload URL is single-use and valid for 10 minutes. Until
+[`ConfirmUpload`](/go-sdk/upload/confirm-upload) is called the asset stays `pending` and is
+excluded from media listings.
+
+<Warning>
+  The `PUT` must use the exact `ContentType` and `SizeBytes` you presigned with. See
+  [Uploading Media](/guides/uploading) for the underlying HTTP flow.
+</Warning>
+
+## One call: `UploadPresigned`
+
+When the bytes are on your server, `UploadPresigned` runs presign, `PUT` and confirm for
+you. It skips the `PUT` when `ContentHash` matches existing content, and retries the
+confirm step on `409` while the bytes settle.
+
+```go
+fi, _ := f.Stat()
+
+asset, err := client.UploadPresigned(ctx, dreep.DirectUploadOptions{
+    PresignOptions: dreep.PresignOptions{
+        ContentType: "video/mp4",
+        SizeBytes:   fi.Size(),
+        Filename:    "clip.mp4",
+        ContentHash: sha256Hex, // optional dedupe
+    },
+    File: f,
+})
+```
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `PresignOptions` | `dreep.PresignOptions` | Embedded. As above |
+| `File` | `io.Reader` | **Required.** The raw content to `PUT` |
+| `Transform` | `*dreep.Transform` | Applied at confirm time |
+| `PresetKey` | `string` | Applied at confirm time |
+
+## Browser uploads
+
+For a browser, split the flow: your Go handler presigns, the browser `PUT`s, and a second
+handler confirms.
+
+```go
+// POST /uploads — returns { id, uploadUrl } to the browser
+func presignHandler(client *dreep.Client) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Authorise the signed-in user and enforce your own quotas first.
+        var in struct {
+            Filename    string `json:"filename"`
+            ContentType string `json:"contentType"`
+            SizeBytes   int64  `json:"sizeBytes"`
+        }
+        if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+            http.Error(w, "bad request", http.StatusBadRequest)
+            return
+        }
+        upload, err := client.PresignUpload(r.Context(), dreep.PresignOptions{
+            Filename:    in.Filename,
+            ContentType: in.ContentType,
+            SizeBytes:   in.SizeBytes,
+            Destination: dreep.Destination{Folder: "user-uploads"},
+        })
+        if err != nil {
+            http.Error(w, "could not start upload", http.StatusBadGateway)
+            return
+        }
+        json.NewEncoder(w).Encode(map[string]string{
+            "id":        upload.ID,
+            "uploadUrl": upload.UploadURL,
+        })
+    })
+}
+```
+
+```go
+// POST /uploads/{id}/confirm — finalises the upload once the browser's PUT is done
+func confirmHandler(client *dreep.Client) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Check the id belongs to an upload this user started.
+        asset, err := client.ConfirmUpload(r.Context(), r.PathValue("id"), nil)
+        if err != nil {
+            http.Error(w, "could not confirm upload", http.StatusBadGateway)
+            return
+        }
+        json.NewEncoder(w).Encode(asset)
+    })
+}
+
+mux := http.NewServeMux()
+mux.Handle("POST /uploads", presignHandler(client))
+mux.Handle("POST /uploads/{id}/confirm", confirmHandler(client))
+```
+
+The browser then sends the bytes and calls your confirm endpoint:
+
+```js
+await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+await fetch(`/uploads/${id}/confirm`, { method: "POST" });
+```
+
+## Skipping duplicate uploads
+
+Pass the file's SHA-256 as `ContentHash`. If Dreep already stores that content,
+`AlreadyExists` is `true` and `UploadURL` is empty — skip the `PUT` and confirm directly.
+
+```go
+upload, err := client.PresignUpload(ctx, dreep.PresignOptions{
+    ContentType: "image/png",
+    SizeBytes:   size,
+    Filename:    "logo.png",
+    ContentHash: sha256Hex,
+})
+if err != nil {
+    return err
+}
+if !upload.AlreadyExists {
+    // PUT the bytes to upload.UploadURL
+}
+asset, err := client.ConfirmUpload(ctx, upload.ID, nil)
+```

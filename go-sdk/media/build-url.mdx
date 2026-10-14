@@ -1,0 +1,86 @@
+---
+title: "Delivery URLs"
+description: "Transform an asset at delivery time with client.URL()."
+---
+
+Builds a delivery URL for an asset with transform parameters appended. Pure string work —
+no network call, no context, no error — so it's safe in a render path.
+
+```go
+client.URL(asset.ID, &dreep.Transform{Width: 400, Height: 400, Fit: dreep.FitCover})
+// https://cdn.dreep.cloud/api/v1/fetch/<id>?fit=cover&height=400&width=400
+```
+
+## Signature
+
+```go
+func (c *Client) URL(assetID string, t *dreep.Transform) string
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `assetID` | `string` | **Required.** The asset's `ID` |
+| `t` | `*dreep.Transform` | The transform to apply. Pass `nil` for the original |
+
+When `Format` is set (other than `FormatTXT`), it is also appended to the path as a file
+extension:
+
+```go
+client.URL(asset.ID, &dreep.Transform{Width: 400, Format: dreep.FormatWebP})
+// https://cdn.dreep.cloud/api/v1/fetch/<id>.webp?format=webp&width=400
+```
+
+Transforms run on the fly and are cached, so one original serves every size you ask for.
+
+## Transform fields
+
+Fields left at their zero value are omitted. Which fields apply is enforced server-side per
+file type.
+
+| Field | Type | Applies to | Description |
+| :--- | :--- | :--- | :--- |
+| `Format` | `dreep.Format` | image, video | `FormatJPEG`, `FormatPNG`, `FormatWebP`, `FormatAVIF`, `FormatGIF`, `FormatTIFF`, `FormatMP4`, `FormatWebM`, `FormatMOV`, `FormatHLS`, `FormatM3U8` |
+| `Width`, `Height` | `int` | image, video | Target size in pixels, max 4000 |
+| `Fit` | `dreep.Fit` | image, video | `FitCover`, `FitContain`, `FitFill`, `FitInside`, `FitOutside` |
+| `Quality` | `int` | image, video | 1–100 |
+| `Gravity` | `dreep.Gravity` | image | `GravityNorth` … `GravityNorthwest`, `GravityCenter`, `GravityAttention`, `GravityEntropy` |
+| `Crop` | `*dreep.Crop` | image | Explicit crop: `Left`, `Top`, `Width`, `Height`. Upload and confirm only, not accepted on delivery URLs |
+| `DPR` | `float64` | image | Device pixel ratio multiplier, max 3 |
+| `Rotate` | `int` | image | `90`, `180` or `270`; other values are dropped |
+| `BG` | `string` | image | Hex fill colour without `#`, e.g. `"ffffff"` |
+| `Radius` | `string` | image | Corner radius in px, or `"max"` for a circle |
+| `TrimStart`, `TrimEnd` | `*float64` | video | Trim points in seconds. Use `dreep.Ptr(2.5)` |
+| `VideoCodec` | `dreep.VideoCodec` | video | `CodecH264`, `CodecHEVC`, or `dreep.VideoCodec("vp8")` / `dreep.VideoCodec("vp9")` |
+| `FPS` | `int` | video | Output frame rate |
+| `Preset` | `string` | image, video | A saved preset key, sent as `p` |
+
+<Warning>
+  The API accepts `h264`, `vp8`, `vp9` and `hevc` as video codecs. The SDK also exports
+  `CodecLibX264` and `CodecLibVPXVP9`, but the API rejects those values, so don't use them.
+</Warning>
+
+See [Image Transformations](/transformations/images) and
+[Video Transformations](/transformations/videos) for what each does.
+
+## Video
+
+```go
+start, end := 2.0, 8.0
+
+client.URL(video.ID, &dreep.Transform{
+    Width:     720,
+    Format:    dreep.FormatMP4,
+    TrimStart: &start,
+    TrimEnd:   &end,
+})
+```
+
+## Presets
+
+```go
+client.URL(asset.ID, &dreep.Transform{Preset: "thumbnail"})
+// https://cdn.dreep.cloud/api/v1/fetch/<id>?p=thumbnail
+```
+
+The SDK maps `Preset` onto the `p` query parameter the API reads. See
+[`CreatePreset`](/go-sdk/presets/create-preset).

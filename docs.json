@@ -205,6 +205,83 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Go SDK",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "go-sdk/introduction"
+            ]
+          },
+          {
+            "group": "Upload",
+            "icon": "cloud-arrow-up",
+            "pages": [
+              "go-sdk/upload/upload-media",
+              "go-sdk/upload/create-presigned-upload",
+              "go-sdk/upload/confirm-upload"
+            ]
+          },
+          {
+            "group": "OCR",
+            "icon": "text-size",
+            "pages": [
+              "go-sdk/ocr/extract-text"
+            ]
+          },
+          {
+            "group": "Background Removal",
+            "icon": "eraser",
+            "pages": [
+              "go-sdk/bg-remove/remove-background"
+            ]
+          },
+          {
+            "group": "Media",
+            "icon": "image",
+            "pages": [
+              "go-sdk/media/build-url",
+              "go-sdk/media/signed-url",
+              "go-sdk/media/list-media",
+              "go-sdk/media/list-all-media",
+              "go-sdk/media/delete-media"
+            ]
+          },
+          {
+            "group": "Folders",
+            "icon": "folder",
+            "pages": [
+              "go-sdk/folders/create-folder",
+              "go-sdk/folders/list-folders"
+            ]
+          },
+          {
+            "group": "Presets",
+            "icon": "sliders",
+            "pages": [
+              "go-sdk/presets/create-preset",
+              "go-sdk/presets/list-presets",
+              "go-sdk/presets/delete-preset"
+            ]
+          },
+          {
+            "group": "Usage & Billing",
+            "icon": "chart-simple",
+            "pages": [
+              "go-sdk/usage/get-usage"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "triangle-exclamation",
+            "pages": [
+              "go-sdk/errors"
+            ]
+          }
+        ]
       }
     ]
   },

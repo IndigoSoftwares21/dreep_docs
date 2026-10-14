@@ -1,0 +1,41 @@
+---
+title: "Delete Media"
+description: "Delete an asset and everything derived from it with client.DeleteMedia()."
+---
+
+```go
+err := client.DeleteMedia(ctx, asset.ID)
+```
+
+## Signature
+
+```go
+func (c *Client) DeleteMedia(ctx context.Context, id string) error
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | **Required.** UUID of the asset |
+
+## Returns
+
+`nil` on success, an error otherwise.
+
+## What gets removed
+
+The original leaves storage along with every cached transform derived from it, and the
+space is credited back against your plan's storage quota.
+
+<Warning>
+  Deletion is immediate and permanent. Any URL already handed out — including unexpired
+  [signed URLs](/go-sdk/media/signed-url) — stops resolving.
+</Warning>
+
+## Errors
+
+| Check | Cause |
+| :--- | :--- |
+| `dreep.IsNotFound(err)` | No asset with that id in this project |
+
+A `DELETE` can be retried on `429` or `5xx`. If you see `IsNotFound` after a retry, the
+first attempt most likely succeeded.

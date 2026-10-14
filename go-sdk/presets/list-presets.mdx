@@ -1,0 +1,29 @@
+---
+title: "List Presets"
+description: "List every saved transform preset with client.ListPresets()."
+---
+
+```go
+presets, err := client.ListPresets(ctx)
+```
+
+## Signature
+
+```go
+func (c *Client) ListPresets(ctx context.Context) ([]dreep.Preset, error)
+```
+
+Takes no arguments beyond the context.
+
+## Returns
+
+A slice of [`dreep.Preset`](/go-sdk/presets/create-preset#returns):
+
+```go
+for _, p := range presets {
+    fmt.Println(p.Key, p.Name, p.Params)
+}
+```
+
+Use `Key` when applying a preset, and `ID` when
+[deleting](/go-sdk/presets/delete-preset) one.

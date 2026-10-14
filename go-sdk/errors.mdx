@@ -1,0 +1,118 @@
+---
+title: "Errors & Retries"
+description: "The typed *dreep.Error, its helpers, and what the Go SDK retries."
+---
+
+Every non-2xx response from the API is returned as a `*dreep.Error`. Use the helper
+functions to branch on the cases worth handling differently, without comparing status
+codes yourself.
+
+```go
+asset, err := client.Upload(ctx, opts)
+switch {
+case err == nil:
+    return asset.URL, nil
+case dreep.IsPaymentRequired(err):
+    // 402 — a plan limit was reached
+case dreep.IsNotFound(err):
+    // 404 — unknown asset, folder, preset or upload
+case dreep.IsInvalidRequest(err):
+    // the API rejected the request as malformed
+default:
+    return "", err
+}
+```
+
+## The `Error` type
+
+```go
+type Error struct {
+    StatusCode int    // HTTP status returned by the API
+    Code       string // machine-readable code, e.g. "invalid_request", when provided
+    Message    string // human-readable message
+
+    // Populated only on 402 billing-limit errors that carry the detail
+    FeatureKey string
+    Used       flexInt64 // read with .Int64()
+    Limit      flexInt64 // read with .Int64()
+}
+```
+
+Unwrap it with `errors.As` when you need the raw fields:
+
+```go
+var e *dreep.Error
+if errors.As(err, &e) {
+    log.Printf("dreep %d %s: %s", e.StatusCode, e.Code, e.Message)
+}
+```
+
+## Helpers
+
+| Helper | Status | True when |
+| :--- | :--- | :--- |
+| `IsUnauthorized(err)` | 401 | Bad API key, or a signed asset fetched without a valid `exp`/`sig` |
+| `IsPaymentRequired(err)` | 402 | A plan limit was hit: storage, transformations, or no background-removal credits |
+| `IsNotFound(err)` | 404 | Unknown asset, folder, preset, or presigned upload |
+| `IsConflict(err)` | 409 | [`ConfirmUpload`](/go-sdk/upload/confirm-upload) ran before the bytes landed |
+| `IsInvalidRequest(err)` | 400 | The API returned the `invalid_request` code |
+| `FeatureLimit(err)` | 402 | Returns the feature key when the 402 carries limit detail |
+
+Errors raised before a request is sent, such as a missing `Filename` or mutually exclusive
+destination fields, are plain errors prefixed with `dreep:` rather than `*dreep.Error`.
+Network failures and context cancellation wrap the underlying error, so
+`errors.Is(err, context.DeadlineExceeded)` works as expected.
+
+## Plan limits
+
+A 402 means the project hit a ceiling. When the API includes the detail, `FeatureLimit`
+reports which feature, and the `Error` carries current usage against the cap:
+
+```go
+if key, ok := dreep.FeatureLimit(err); ok {
+    var e *dreep.Error
+    errors.As(err, &e)
+    log.Printf("limit hit on %s: used %d of %d", key, e.Used.Int64(), e.Limit.Int64())
+}
+```
+
+Limits are lifted by upgrading the plan or buying an add-on in the dashboard.
+
+## What gets retried
+
+Requests with a replayable body (`PresignUpload`, `ListMedia`, `DeleteMedia`, the folder,
+preset and usage calls) are retried on a `429` or any `5xx`: two retries by default, waiting 500ms before the first and doubling
+from there. A `Retry-After` response header always overrides the computed delay.
+
+```go
+client, err := dreep.New(key,
+    dreep.WithMaxRetries(4),                        // 0 disables retries
+    dreep.WithRetryBaseDelay(200*time.Millisecond),
+)
+```
+
+Streaming multipart uploads (`Upload`, `RemoveBackground`, `UploadAndExtractText`) are
+never retried, because their bodies cannot be replayed. A failed upload can therefore
+never store a duplicate asset. `ConfirmUpload` and `ExtractText` are sent once as well.
+Retry those yourself when your own logic makes it safe. Connection failures are returned
+immediately rather than retried.
+
+[`UploadPresigned`](/go-sdk/upload/create-presigned-upload#one-call-uploadpresigned) is the
+one exception to "retry it yourself": it retries the confirm step on `409` while the bytes
+settle in storage.
+
+## Timeouts
+
+The default `http.Client` has no global timeout. Bound each call with a context:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+defer cancel()
+
+asset, err := client.Upload(ctx, opts)
+if errors.Is(err, context.DeadlineExceeded) {
+    // the upload took longer than two minutes
+}
+```
+
+To set a client-wide ceiling instead, pass your own client with `dreep.WithHTTPClient`.

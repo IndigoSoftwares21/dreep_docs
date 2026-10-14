@@ -1,0 +1,147 @@
+---
+title: "Introduction"
+description: "The official Go SDK for the Dreep API — install, authenticate, and make your first call."
+---
+
+The `dreep` Go package wraps every endpoint in this reference, decodes errors into a typed
+`*dreep.Error`, retries safe requests, and generates signed URLs locally.
+
+- **Zero dependencies.** Built entirely on the standard library (`net/http`,
+  `mime/multipart`, `crypto/hmac`).
+- **Context first.** Every method that makes a request takes a `context.Context` as its
+  first argument, so deadlines and cancellation work the way they do everywhere else in Go.
+- **Safe for concurrent use.** One `*dreep.Client` can be shared across goroutines.
+
+## Installation
+
+```bash
+go get github.com/IndigoSoftwares21/dreep-go
+```
+
+Requires Go 1.22 or later. The full API reference is on
+[pkg.go.dev](https://pkg.go.dev/github.com/IndigoSoftwares21/dreep-go).
+
+## Authentication
+
+Create an API key on the **API Keys** page of your dashboard.
+
+```go
+import "github.com/IndigoSoftwares21/dreep-go"
+
+client, err := dreep.New(
+    os.Getenv("DREEP_API_KEY"),                                // required — "drp_live_…"
+    dreep.WithSigningSecret(os.Getenv("DREEP_SIGNING_SECRET")), // optional — only for SignedURL
+)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+`dreep.New` returns an error when the API key is empty.
+
+<Warning>
+  Your API key is a full-project credential and must stay server-side. Anyone holding it
+  can read, upload and delete every asset in the project.
+
+  To upload from a browser, use the [presigned upload](/go-sdk/upload/create-presigned-upload)
+  flow, where your Go backend hands the client a short-lived URL and the key never leaves
+  your server.
+</Warning>
+
+### Client options
+
+| Option | Description |
+| :--- | :--- |
+| `WithSigningSecret(secret)` | Project URL Signing Secret, needed for [`SignedURL`](/go-sdk/media/signed-url) |
+| `WithMaxRetries(n)` | Retries on `429` and `5xx` for replayable requests. Default `2`, `0` disables |
+| `WithRetryBaseDelay(d)` | Wait before the first retry, doubled each time. Default `500ms` |
+| `WithHTTPClient(hc)` | Replace the underlying `*http.Client` |
+
+## Quickstart
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "os"
+    "time"
+
+    "github.com/IndigoSoftwares21/dreep-go"
+)
+
+func main() {
+    client, err := dreep.New(os.Getenv("DREEP_API_KEY"))
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    f, err := os.Open("hero.jpg")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer f.Close()
+
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+    defer cancel()
+
+    // Upload, resized and converted on the way in
+    asset, err := client.Upload(ctx, dreep.UploadOptions{
+        File:        f,
+        Filename:    "hero.jpg",
+        Destination: dreep.Destination{Folder: "marketing/2026"},
+        Transform:   &dreep.Transform{Width: 1200, Format: dreep.FormatWebP},
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Println(asset.URL)
+
+    // Build a smaller variant — no network call
+    fmt.Println(client.URL(asset.ID, &dreep.Transform{Width: 400}))
+    // https://cdn.dreep.cloud/api/v1/fetch/<id>?width=400
+}
+```
+
+A runnable version lives in
+[`examples/upload`](https://github.com/IndigoSoftwares21/dreep-go/tree/main/examples/upload).
+
+## Method reference
+
+| Method | Does | Endpoint |
+| :--- | :--- | :--- |
+| [`Upload`](/go-sdk/upload/upload-media) | Upload a file | `POST /upload` |
+| [`PresignUpload`](/go-sdk/upload/create-presigned-upload) | Start a direct-to-storage upload | `POST /upload/presign` |
+| [`ConfirmUpload`](/go-sdk/upload/confirm-upload) | Finalise a presigned upload | `POST /upload/:id/confirm` |
+| [`UploadPresigned`](/go-sdk/upload/create-presigned-upload#one-call-uploadpresigned) | Presign, PUT and confirm in one call | all three |
+| [`URL`](/go-sdk/media/build-url) | Transform at delivery time | none — builds a string |
+| [`SignedURL`](/go-sdk/media/signed-url) | Time-limited link for a signed folder | none — builds a string |
+| [`ListMedia`](/go-sdk/media/list-media) | List one page | `GET /media` |
+| [`ListAllMedia`](/go-sdk/media/list-all-media) | Walk every page | `GET /media` |
+| [`DeleteMedia`](/go-sdk/media/delete-media) | Delete an asset | `DELETE /media/:id` |
+| [`CreateFolder`](/go-sdk/folders/create-folder) | Create a folder | `POST /folders` |
+| [`ListFolders`](/go-sdk/folders/list-folders) | List folders | `GET /folders` |
+| [`CreatePreset`](/go-sdk/presets/create-preset) | Save a named transform | `POST /presets` |
+| [`ListPresets`](/go-sdk/presets/list-presets) | List presets | `GET /presets` |
+| [`DeletePreset`](/go-sdk/presets/delete-preset) | Delete a preset | `DELETE /presets/:id` |
+| [`RemoveBackground`](/go-sdk/bg-remove/remove-background) | Cut out the subject | `POST /bg-remove` |
+| [`UploadAndExtractText`](/go-sdk/ocr/extract-text) | Upload and run OCR | `POST /ocr` |
+| [`ExtractText`](/go-sdk/ocr/extract-text#reading-an-asset-already-in-dreep) | OCR an existing asset | `GET fetch/{id}.txt` |
+| [`GetUsage`](/go-sdk/usage/get-usage) | Storage and object counts | `GET /usage` |
+
+## Timeouts and cancellation
+
+The default `http.Client` applies no global timeout, because uploading a large file can
+legitimately take minutes. Bound each call with a context deadline instead:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+page, err := client.ListMedia(ctx, nil)
+```
+
+Cancelling the context aborts the request, including any pending retry wait.
