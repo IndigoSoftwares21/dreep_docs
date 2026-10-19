@@ -448,6 +448,8 @@ paths:
       summary: Upload & Extract Text
       description: >
         Upload an image or PDF document and instantly extract its text using Optical Character Recognition (OCR).
+        Accepts JPEG, PNG, TIFF and PDF. PDFs can have up to 50 pages, and each image or PDF page must be under 10MB.
+        Every page processed counts as one OCR page against your plan.
         If a destination folder is given (via `folder` or `folderId`), the extracted text is also saved to your
         Dreep storage as a `.txt` file in that folder. With no folder, the text is returned in the response only.
       tags:
@@ -460,11 +462,13 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              required:
+                - file
               properties:
                 file:
                   type: string
                   format: binary
-                  description: The file to extract text from (Image or PDF).
+                  description: The file to extract text from - JPEG, PNG, TIFF, or PDF (up to 50 pages).
                 folder:
                   type: string
                   description: >
@@ -482,6 +486,11 @@ paths:
                   enum: ["true", "false"]
                   default: "true"
                   description: Set to `false` to require that `folder` already exists.
+                includeBlocks:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "false"
+                  description: Set to `true` to include the line-level `blocks` (with bounding boxes) in the response.
       responses:
         "200":
           description: Extraction successful
@@ -495,7 +504,9 @@ paths:
                     description: The fully concatenated plain text.
                   blocks:
                     type: array
-                    description: Raw AWS Textract block objects (lines, words) with bounding boxes.
+                    description: >
+                      Line blocks with bounding boxes. Only present when `includeBlocks` is `true`.
+                      Each block's `Page` is its 1-based page number in the source document.
                     items:
                       type: object
                   savedAsset:
@@ -508,9 +519,16 @@ paths:
                       storageKey:
                         type: string
         "400":
-          $ref: "#/components/responses/BadRequest"
+          description: >
+            The file couldn't be processed - unsupported type (only JPEG, PNG, TIFF and PDF are accepted),
+            a page over 10MB, a PDF over 50 pages, or a corrupt or password-protected document. The
+            `message` field says which.
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: The project has reached its plan's OCR page limit
+        "503":
+          description: Text extraction is temporarily busy - retry shortly
   /api/v1/bg-remove:
     post:
       summary: Remove Background
