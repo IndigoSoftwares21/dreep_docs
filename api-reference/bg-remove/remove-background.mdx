@@ -76,9 +76,10 @@ curl -X POST "https://api.dreep.cloud/api/v1/bg-remove" \
 
 ## Billing
 
-Background removals come from a consumable add-on, not a plan allowance — no
-plan includes them by default. Each successful removal spends one credit.
+Every plan includes background removals: **Free** gets 5 as a one-time trial,
+**Starter** 100 a month and **Pro** 500 a month. Once those are used, removals
+come from a 1,000-removal add-on pack. Each successful removal spends one.
 
-With no credits left the endpoint returns `402` with `code: "LIMIT_EXCEEDED"`
+With none left the endpoint returns `402` with `code: "LIMIT_EXCEEDED"`
 and `featureKey: "bg_removals"`. Credits are only spent once the cutout is
 stored, so a failed request costs nothing.

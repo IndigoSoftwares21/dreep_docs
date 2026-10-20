@@ -36,7 +36,18 @@ curl -X GET "https://api.dreep.cloud/fetch/c837890f-93d3-4632-902f-b4b9fbdb891d.
 
 Dreep's OCR engine currently supports extracting text from:
 - **Images:** `.jpg`, `.jpeg`, `.png`
-- **Documents:** `.pdf`, up to 50 pages. Each page counts as one OCR page against your plan.
+- **Documents:** `.pdf`. Each page counts as one OCR page against your plan.
+
+## Plan limits
+
+| Plan    | OCR pages included   | Max pages per PDF |
+| :------ | :------------------- | :---------------- |
+| Free    | 10, one-time trial   | 5                 |
+| Starter | 100 per month        | 20                |
+| Pro     | 500 per month        | 50                |
+
+Each image or PDF page must be under 10 MB. Once your included pages run out,
+buy a 1,000-page add-on pack from the dashboard; packs never expire.
 
 ## Caching and Billing
 
@@ -47,7 +58,7 @@ To solve this, Dreep **caches the result of every successful text extraction** d
 - All subsequent requests take less than ~50ms, as Dreep streams the plain text file straight out of storage.
 
 **Billing implications:**
-You are only billed for the **first** extraction of a given document. This deducts `1` from your plan's monthly **OCR Pages** allowance. Fetching the cached result is free and only incurs standard bandwidth costs.
+You are only billed for the **first** extraction of a given document. Each page it contains uses one page of your **OCR Pages** allowance, then add-on pack pages. Fetching the cached result is free and only incurs standard bandwidth costs.
 
 ## Drawing Bounding Boxes in your UI
 

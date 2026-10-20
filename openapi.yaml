@@ -448,7 +448,7 @@ paths:
       summary: Upload & Extract Text
       description: >
         Upload an image or PDF document and instantly extract its text using Optical Character Recognition (OCR).
-        Accepts JPEG, PNG, TIFF and PDF. PDFs can have up to 50 pages, and each image or PDF page must be under 10MB.
+        Accepts JPEG, PNG, TIFF and PDF. PDFs can have up to 5 pages on Free, 20 on Starter and 50 on Pro, and each image or PDF page must be under 10MB.
         Every page processed counts as one OCR page against your plan.
         If a destination folder is given (via `folder` or `folderId`), the extracted text is also saved to your
         Dreep storage as a `.txt` file in that folder. With no folder, the text is returned in the response only.
@@ -468,7 +468,7 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: The file to extract text from - JPEG, PNG, TIFF, or PDF (up to 50 pages).
+                  description: The file to extract text from - JPEG, PNG, TIFF, or PDF (up to 5, 20 or 50 pages on Free, Starter or Pro).
                 folder:
                   type: string
                   description: >
@@ -521,7 +521,7 @@ paths:
         "400":
           description: >
             The file couldn't be processed - unsupported type (only JPEG, PNG, TIFF and PDF are accepted),
-            a page over 10MB, a PDF over 50 pages, or a corrupt or password-protected document. The
+            a page over 10MB, a PDF over your plan's page limit, or a corrupt or password-protected document. The
             `message` field says which.
         "401":
           $ref: "#/components/responses/Unauthorized"

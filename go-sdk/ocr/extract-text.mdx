@@ -78,5 +78,5 @@ secret:
 text, err := client.ExtractText(ctx, asset.ID, &dreep.TextOptions{SigningTTL: time.Minute})
 ```
 
-OCR is billed per page. See [Errors & Retries](/go-sdk/errors#plan-limits) for what happens
+OCR is billed per page: each plan includes some pages (Free 10 one-time, Starter 100 and Pro 500 a month), then add-on packs. PDFs can have up to 5 pages on Free, 20 on Starter and 50 on Pro. See [Errors & Retries](/go-sdk/errors#plan-limits) for what happens
 when the quota runs out.

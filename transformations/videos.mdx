@@ -5,6 +5,11 @@ description: "Transcode, trim, and stream adaptive HLS video dynamically."
 
 Dreep uses a proprietary, high-performance video engine to transform video on the fly. You can combine query parameters to adjust dimensions, re-encode video formats, adjust frame rates, trim clips, or convert videos into animated GIFs.
 
+<Note>
+  On the **Free** plan, video transformations process the first 30 seconds of
+  each video. Starter and Pro process the full length.
+</Note>
+
 ## Inline vs. Asynchronous Processing
 
 - **Fast Jobs (Inline 200 OK):** Lightweight operations like container remuxing (e.g. `MOV` → `MP4` stream copy) are processed quickly inline and served immediately with a `200 OK`.
