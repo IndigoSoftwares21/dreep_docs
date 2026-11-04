@@ -709,8 +709,10 @@ paths:
                 page:
                   type: integer
                   minimum: 1
-                  default: 1
-                  description: The PDF page to render. Only for `png` and `jpeg`.
+                  description: >
+                    Only when converting a PDF to `png` or `jpeg`: which page
+                    to render as the image (page 1 if omitted). Leave it out
+                    for every other format - those always include all pages.
                 folder:
                   type: string
                   description: >
