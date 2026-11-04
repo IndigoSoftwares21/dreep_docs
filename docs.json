@@ -53,7 +53,8 @@
             "icon": "wand-magic-sparkles",
             "pages": [
               "transformations/images",
-              "transformations/videos"
+              "transformations/videos",
+              "transformations/documents"
             ]
           },
           {
@@ -92,6 +93,13 @@
             "icon": "eraser",
             "pages": [
               "api-reference/bg-remove/remove-background"
+            ]
+          },
+          {
+            "group": "Documents",
+            "icon": "file-lines",
+            "pages": [
+              "api-reference/documents/convert-document"
             ]
           },
           {

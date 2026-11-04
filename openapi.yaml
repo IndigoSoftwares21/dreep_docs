@@ -43,6 +43,37 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    ConvertedDocument:
+      type: object
+      properties:
+        asset:
+          type: object
+          description: The saved result.
+          properties:
+            id:
+              type: string
+              format: uuid
+            folderId:
+              type: string
+              format: uuid
+            filename:
+              type: string
+              example: "contract.pdf"
+            format:
+              type: string
+              example: "pdf"
+            mimetype:
+              type: string
+              example: "application/pdf"
+            sizeBytes:
+              type: integer
+              description: 0 while still processing.
+            status:
+              type: string
+              enum: ["ready", "processing"]
+            url:
+              type: string
+              description: Fetch URL for the result.
     Error:
       type: object
       properties:
@@ -629,6 +660,128 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/convert:
+    post:
+      summary: Convert Document
+      description: >
+        Upload a document and convert it to another format - Word to PDF, PDF
+        to Word, a spreadsheet to CSV, a PDF page to an image. The result is
+        saved to your Dreep storage as a new asset, in the folder you name or
+        the project's default folder.
+
+
+        The request waits for the conversion, up to two minutes. Most
+        documents take a second or two and return `201` with the ready asset.
+        A very long one returns `202`: the asset is created and its `url`
+        answers `202` until the conversion finishes.
+
+
+        Each conversion counts toward your plan's monthly document
+        conversions. If the same document was already converted the same way
+        through its fetch URL, that result is reused for free.
+      tags:
+        - Media
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - format
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: >
+                    The document to convert. Word (doc, docx, odt, rtf), Excel
+                    (xls, xlsx, ods, csv), PowerPoint (ppt, pptx, odp) or PDF.
+                format:
+                  type: string
+                  enum: ["pdf", "docx", "odt", "rtf", "xlsx", "ods", "csv", "pptx", "odp", "png", "jpeg"]
+                  description: >
+                    The format to convert to. Documents convert within their
+                    own family (a spreadsheet can't become a Word document);
+                    PDFs convert to docx, png or jpeg.
+                page:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                  description: The PDF page to render. Only for `png` and `jpeg`.
+                folder:
+                  type: string
+                  description: >
+                    Slug path of the folder to save the result into, relative
+                    to the project root. Missing folders are created.
+                  example: "contracts/pdf"
+                folderId:
+                  type: string
+                  format: uuid
+                  description: >
+                    UUID of an existing folder to save the result into.
+                    Mutually exclusive with `folder`.
+                key:
+                  type: string
+                  description: >
+                    Full storage path for the result, e.g.
+                    `contracts/pdf/acme`. The folder part is created like
+                    `folder`; the last segment names the file.
+                autoCreateFolders:
+                  type: string
+                  enum: ["true", "false"]
+                  default: "true"
+                  description: Set to `false` to require that `folder` already exists.
+      responses:
+        "201":
+          description: Document converted and saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConvertedDocument"
+        "202":
+          description: >
+            Still converting after two minutes. The asset exists with `status:
+            "processing"`; its `url` answers `202` until it's ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConvertedDocument"
+        "400":
+          description: >
+            Unsupported file type or format pair, `page` on a non-image
+            format, a bad folder, or a document that can't be converted
+            (corrupt or password-protected, or a page it doesn't have).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          description: >
+            Monthly document conversions or storage used up, or a paid-only
+            conversion on the Free plan (PDF to Word, page images past page 5).
+            The body carries `code: "LIMIT_EXCEEDED"` and the `featureKey`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "413":
+          description: The document is over your plan's size limit (10 MB on Free, 100 MB on paid plans).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: The conversion failed for a reason other than the document. Safe to retry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/v1/fetch/{mediaId}:
     get:
       summary: Fetch Media
@@ -657,7 +810,7 @@ paths:
           example: "med_123456789"
         - name: format
           in: query
-          description: "Target output format (image: `jpeg`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`; audio: `mp3`, `wav`, `aac`; text extraction: `txt`). Requesting an image format on a video asset extracts a thumbnail. Requesting `txt` on an image or PDF asset runs Optical Character Recognition (OCR) to extract plain text."
+          description: "Target output format (image: `jpeg`, `jpg`, `png`, `webp`, `avif`, `tiff`, `gif`, `heic`, `heif`, `svg+xml`; video: `mp4`, `webm`, `mov`, `hls`, `m3u8`, `gif`; audio: `mp3`, `wav`, `aac`; text extraction: `txt`; documents: `pdf`, `docx`, `odt`, `rtf`, `xlsx`, `ods`, `csv`, `pptx`, `odp`). Requesting an image format on a video asset extracts a thumbnail. Requesting `txt` on an image or PDF asset runs Optical Character Recognition (OCR) to extract plain text. Requesting `png` or `jpeg` on a PDF renders one page as an image (see `page`). See [Document Conversions](/transformations/documents) for which document formats convert to which."
           schema:
             type: string
         - name: width
@@ -726,6 +879,13 @@ paths:
           schema:
             type: number
             minimum: 0
+        - name: page
+          in: query
+          description: The PDF page to render when converting a PDF to `png` or `jpeg`. Defaults to `1`.
+          schema:
+            type: integer
+            minimum: 1
+          example: 2
         - name: p
           in: query
           description: Transform preset key to apply.
@@ -751,10 +911,14 @@ paths:
               schema:
                 type: string
                 format: binary
+        "202":
+          description: The transformation or conversion is still processing. Request the same URL again after a few seconds.
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/PaymentRequired"
         "404":
           $ref: "#/components/responses/NotFound"
   /api/v1/fetch/{mediaId}.txt:

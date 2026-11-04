@@ -1,0 +1,126 @@
+---
+title: "Document Conversions"
+description: "Convert Word, Excel, PowerPoint and PDF files on the fly."
+---
+
+Dreep converts documents from the same fetch URL you already use for images and videos. Request a different format and you get the converted file back: a Word document as a PDF, a PDF as an editable Word document, or a single PDF page as an image.
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.pdf
+```
+
+The original file is never changed. Each conversion is cached, so later requests for the same URL are served straight from the CDN.
+
+---
+
+## Supported conversions
+
+| Source | Source formats | Convert to |
+| :--- | :--- | :--- |
+| **Word documents** | `doc`, `docx`, `odt`, `rtf` | `pdf`, `docx`, `odt`, `rtf` |
+| **Spreadsheets** | `xls`, `xlsx`, `ods`, `csv` | `pdf`, `xlsx`, `ods`, `csv` |
+| **Presentations** | `ppt`, `pptx`, `odp` | `pdf`, `pptx`, `odp` |
+| **PDF** | `pdf` | `docx`, `png`, `jpeg` |
+
+<Note>
+  **Conversion boundaries**: Documents convert within their own family. A
+  spreadsheet can become a PDF or another spreadsheet format, but not a Word
+  document. Any other combination returns `400` with an `Unsupported format
+  conversion` message.
+</Note>
+
+Converting a spreadsheet to `csv` exports the first sheet.
+
+To extract plain text from a document, use [OCR](/guides/text-extraction) with `.txt`.
+
+---
+
+## Requesting a conversion
+
+Add the target format as the file extension, or pass it with `format`. Both URLs return the same file:
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.pdf
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f?format=pdf
+```
+
+Requesting a file's own format (for example `.pdf` on a PDF) returns the original.
+
+| Parameter | Valid options | Description | Try it |
+| :--- | :--- | :--- | :--- |
+| `format` | See [Supported conversions](#supported-conversions) | The output format. | `?format=docx` |
+| `page` | number, from `1` | The PDF page to render when converting to `png` or `jpeg`. Defaults to `1`. | `?page=3` |
+
+**Example: Word document to PDF**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/2f928a3f.pdf
+```
+
+**Example: PDF to editable Word document**
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/7c1e40b9.docx
+```
+
+**Example: PDF page as an image**
+
+Render page 2 of a PDF as a PNG, for a thumbnail or preview:
+
+```text
+https://cdn.dreep.cloud/api/v1/fetch/7c1e40b9.png?page=2
+```
+
+---
+
+## Converting a file you haven't uploaded
+
+To convert a document in one call, upload it to
+[Convert Document](/api-reference/documents/convert-document)
+(`POST /api/v1/convert`) with the `format` you want. The result is saved as a
+new asset, in the folder you name or your default folder.
+
+| | Fetch URL | `POST /convert` |
+| :--- | :--- | :--- |
+| The document is | Already uploaded | Sent with the request |
+| The result is | Cached alongside the original | Saved as its own asset |
+| Best for | Previews and links in your app | Exports and workflows |
+
+Both count toward the same monthly conversions. If you've already converted
+the same document the same way through its fetch URL, `POST /convert` reuses
+that result for free.
+
+---
+
+## Processing time
+
+Most documents convert in a few seconds and are returned in the same request with `200 OK`.
+
+Large files can take longer. When a conversion isn't ready in time, Dreep responds with `202 Accepted`:
+
+- **Browsers** (`Accept: text/html`) get a "Processing" page that refreshes automatically.
+- **API clients** get `{ "message": "Asset is processing", "code": 202 }`.
+
+Request the same URL again after a few seconds. Once the conversion finishes it returns `200 OK` with the file.
+
+If the document can't be converted, for example because it's corrupt or password-protected, Dreep returns `400` with a message explaining why.
+
+---
+
+## Plan limits
+
+Each newly converted file counts as one conversion. Fetching a file that has already been converted is free.
+
+| Plan | Conversions per month | Max source file size | Pages |
+| :--- | :--- | :--- | :--- |
+| **Free** | 100 | 10MB | First 5 pages. PDF to Word not included. |
+| **Starter** | 2,000 | 100MB | All pages |
+| **Pro** | 10,000 | 100MB | All pages |
+
+Once you reach your monthly limit, new conversions return `402` until your usage resets. Files you've already converted keep working.
+
+---
+
+## Access control
+
+Conversions follow the access rules of the folder the document is in. Documents in [signed folders](/security/signed-urls) need a valid `exp` and `sig` on the conversion URL, just like the original file. Conversions also work on your custom domain.

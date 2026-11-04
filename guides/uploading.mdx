@@ -144,7 +144,14 @@ Dreep supports direct uploads up to **500MB** per file. Uploaded files are categ
 | :--- | :--- | :--- |
 | **Image** | JPEG (`.jpeg`, `.jpg`), PNG (`.png`), WebP (`.webp`), GIF (`.gif`), TIFF (`.tiff`), BMP (`.bmp`), SVG (`.svg`), HEIC (`.heic`), HEIF (`.heif`) | Format conversion, Resizing, Compression |
 | **Video** | MP4 (`.mp4`), MOV (`.mov`), WEBM (`.webm`) | Format conversion, Trimming, HLS Streaming |
-| **Raw File** | **Documents**: PDF (`.pdf`), Word (`.doc`, `.docx`), Excel (`.xls`, `.xlsx`), PowerPoint (`.ppt`, `.pptx`)<br/>**Text/Data**: CSV (`.csv`), TXT (`.txt`), JSON (`.json`)<br/>**Archives**: ZIP (`.zip`) | Stored and served directly as-is. Transformations are not allowed. |
+| **Document** | PDF (`.pdf`), Word (`.doc`, `.docx`, `.odt`, `.rtf`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`) | [Document conversion](/transformations/documents) |
+| **Raw File** | **Text/Data**: TXT (`.txt`), JSON (`.json`)<br/>**Web pages**: HTML (`.html`, `.htm`)<br/>**Archives**: ZIP (`.zip`) | Stored and served directly as-is. Transformations are not allowed. |
+
+<Note>
+  **HTML files** are served in a sandbox: pages render with their styles,
+  images and links, but scripts and form submissions are blocked on
+  `cdn.dreep.cloud`. On your own custom domain, scripts run.
+</Note>
 
 ---
 
@@ -154,6 +161,7 @@ When requesting format conversions during upload or delivery (via the `format` p
 
 - **Image → Image**: Images can be converted to `jpeg`, `png`, `webp`, `avif`, `gif`, or `tiff`.
 - **Video → Video**: Videos can be converted to `mp4`, `webm`, `mov`, `hls` (`.m3u8`), or `gif` (animated GIF clip).
+- **Document → Document**: Word, Excel and PowerPoint files convert to `pdf` or another format in the same family. PDFs convert to `docx`, or to `png`/`jpeg` page images. See [Document Conversions](/transformations/documents).
 - **Cross-Family Restrictions**: Converting an Image to a Video format (or Video to an Image format other than `gif`) is blocked and returns an `Unsupported format conversion` error.
-- **Raw Files**: Non-transformable raw files (PDF, DOCX, ZIP) cannot be converted to any target format.
+- **Raw Files**: Non-transformable raw files (TXT, JSON, HTML, ZIP) cannot be converted to any target format.
 
