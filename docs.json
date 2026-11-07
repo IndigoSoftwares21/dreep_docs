@@ -171,6 +171,13 @@
             ]
           },
           {
+            "group": "Documents",
+            "icon": "file-lines",
+            "pages": [
+              "node-sdk/documents/convert-document"
+            ]
+          },
+          {
             "group": "Media",
             "icon": "image",
             "pages": [

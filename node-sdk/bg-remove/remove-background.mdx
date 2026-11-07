@@ -22,7 +22,16 @@ const asset = await dreep.removeBackground({ file, folder: "products" });
 
 ## Returns
 
-The stored [asset](/node-sdk/upload/upload-media#returns).
+The stored cutout:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Asset ID |
+| `url` | `string` | Delivery URL. Pass to `dreep.url()` to transform it |
+| `storageKey` | `string` | Where it's stored |
+| `format` | `string` | `png` or `webp` |
+| `width`, `height` | `number` | Size in pixels |
+| `sizeBytes` | `number` | File size |
 
 ## Serving it on a background
 

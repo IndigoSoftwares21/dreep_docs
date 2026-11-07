@@ -36,7 +36,7 @@ Transforms run on the fly and are cached, so one original serves every size you 
 
 | Parameter | Applies to | Description |
 | :--- | :--- | :--- |
-| `format` | image, video, audio | Output format. Also drives OCR (`txt`) and video thumbnails |
+| `format` | all | Output format. Also drives OCR (`txt`), document conversion (`pdf`, `docx`, ...) and video thumbnails |
 | `width`, `height` | image, video | Target size in pixels, max 4000 |
 | `fit` | image, video | `cover`, `contain`, `fill`, `inside`, `outside` |
 | `quality` | image, video | 1–100 |
@@ -50,10 +50,12 @@ Transforms run on the fly and are cached, so one original serves every size you 
 | `trimStart`, `trimEnd` | video | Trim points in seconds |
 | `videoCodec` | video | `h264`, `vp8`, `vp9`, `hevc` |
 | `fps` | video | Output frame rate |
+| `page` | PDF | Page to render when converting a PDF to `png` or `jpeg`. Defaults to 1 |
 | `preset` | image, video | A saved preset key, applied instead of individual fields |
 
-See [Image Transformations](/transformations/images) and
-[Video Transformations](/transformations/videos) for what each does.
+See [Image Transformations](/transformations/images),
+[Video Transformations](/transformations/videos) and
+[Document Conversions](/transformations/documents) for what each does.
 
 ## Type safety
 

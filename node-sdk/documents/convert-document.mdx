@@ -1,0 +1,69 @@
+---
+title: "Convert Document"
+description: "Convert Word, Excel, PowerPoint and PDF files with dreep.convertDocument() or dreep.url()."
+---
+
+Converts a document and stores the result as a new asset: Word to PDF, PDF to Word, a
+spreadsheet to CSV, a PDF page to an image.
+
+```ts
+const pdf = await dreep.convertDocument({ file, format: "pdf", folder: "contracts" });
+```
+
+For a document that's already in Dreep, you don't need this call: request it in another
+format with [`dreep.url()`](/node-sdk/media/build-url).
+
+```ts
+dreep.url(contract, { format: "pdf" });
+dreep.url(brochure, { format: "png", page: 2 });
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `Buffer \| Readable \| Blob \| File` | **Required.** The document to convert |
+| `format` | `ConvertFormat` | **Required.** What to convert to (see below) |
+| `page` | `number` | Only for a PDF converted to `png` or `jpeg`: which page. Defaults to 1 |
+| `filename` | `string` | Name for the source; the result keeps it with the new extension |
+| `folder` | `string` | Slug path of the destination. Missing folders are created |
+| `folderId` | `string` | UUID of an existing folder |
+| `key` | `string` | Full storage path for the result. Mutually exclusive with `folder` |
+| `autoCreateFolders` | `boolean` | Set `false` to require the path already exists |
+| `signal` | `AbortSignal` | Cancels the request |
+
+With no folder given, the result is saved to the project's default folder.
+
+## Formats
+
+| Upload | `format` |
+| :--- | :--- |
+| Word: `doc`, `docx`, `odt`, `rtf` | `pdf`, `docx`, `odt`, `rtf` |
+| Excel: `xls`, `xlsx`, `ods`, `csv` | `pdf`, `xlsx`, `ods`, `csv` |
+| PowerPoint: `ppt`, `pptx`, `odp` | `pdf`, `pptx`, `odp` |
+| PDF | `docx`, `png`, `jpeg` |
+
+## Returns
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `string` | Asset ID |
+| `url` | `string` | Delivery URL |
+| `filename` | `string` | The original name with the new extension, e.g. `contract.pdf` |
+| `format` | `string` | The format it was converted to |
+| `mimetype` | `string` | e.g. `application/pdf` |
+| `sizeBytes` | `number` | File size. `0` while still processing |
+| `status` | `string` | `ready`, or `processing` for a long conversion |
+| `folderId` | `string` | Folder it was saved in |
+
+The call waits for the conversion, up to two minutes. A longer one returns with
+`status: "processing"`, and its `url` answers `202` until it's ready.
+
+## Errors
+
+| Error | When |
+| :--- | :--- |
+| `DreepLimitError` | Monthly conversions used up, storage full, or a paid-only conversion on Free (PDF to Word, page images past page 5) |
+| `DreepValidationError` | Unsupported file or format, a document over the plan's size limit, or one that can't be converted (corrupt or password-protected) |
+
+See [Errors](/node-sdk/errors).
