@@ -1,0 +1,90 @@
+---
+title: "Convert Document"
+description: "Convert between document formats with client.convert_document()."
+---
+
+Converts a document: Word to PDF, PDF to Word, spreadsheets, or a single PDF page to an
+image.
+
+```python
+pdf = client.convert_document(Path("contract.docx"), format="pdf", folder="contracts")
+pdf.url
+```
+
+## Signature
+
+```python
+client.convert_document(
+    file,
+    *,
+    format,
+    filename=None,
+    page=None,
+    key=None,
+    folder=None,
+    folder_id=None,
+    auto_create_folders=None,
+    timeout=NOT_GIVEN,
+) -> ConvertedDocument
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `bytes \| Path \| BinaryIO` | **Required.** The document to convert |
+| `format` | `ConvertFormat` | **Required.** Target format |
+| `filename` | `str` | Name for the source, needed when passing `bytes` |
+| `page` | `int` | 1-based page to render, when converting a PDF to `png` or `jpeg` |
+| `key` | `str` | Full object key for the result |
+| `folder` | `str` | Slug path of the destination |
+| `folder_id` | `str` | UUID of an existing folder |
+| `auto_create_folders` | `bool` | `False` to require the path already exists |
+
+`format` is one of `pdf`, `docx`, `odt`, `rtf`, `xlsx`, `ods`, `csv`, `pptx`, `odp`, `png`
+or `jpeg`.
+
+## Returns
+
+```python
+doc.id         # "9a1b7c42-…"
+doc.url        # "https://cdn.dreep.cloud/api/v1/fetch/9a1b7c42-….pdf"
+doc.filename   # "contract.pdf"
+doc.format     # "pdf"
+doc.mimetype   # "application/pdf"
+doc.size_bytes # 412000 — int
+doc.status     # "ready" or "processing"
+doc.is_ready   # True when status == "ready"
+doc.folder_id  # "78b52933-…"
+```
+
+## A PDF page as an image
+
+```python
+slide = client.convert_document(Path("deck.pdf"), format="png", page=2)
+```
+
+## Long conversions
+
+The API waits up to two minutes. A document that takes longer comes back with
+`status == "processing"`, and its URL answers `202` until the result is ready:
+
+```python
+doc = client.convert_document(Path("manual.pdf"), format="docx")
+
+if not doc.is_ready:
+    # the file is still converting; its URL answers 202 until it's ready
+    # size_bytes is 0 until then
+    ...
+```
+
+<Note>
+  Converting at delivery time works too: request a different `format` on any document
+  asset's URL — `client.url(asset, {"format": "pdf"})` — and the conversion happens on the
+  fly and is cached. See [Document conversions](/transformations/documents).
+</Note>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepValidationError` | Unsupported source type, or a conversion that isn't offered |
+| `DreepLimitError` | The plan's conversion quota is used up |

@@ -1,0 +1,70 @@
+---
+title: "Signed URLs"
+description: "Build a time-limited link for private media with client.signed_url()."
+---
+
+Files in a **signed** folder can only be fetched with a link that carries an expiry time
+(`exp`) and an HMAC-SHA256 signature (`sig`). `signed_url()` builds that link locally — no
+network call, no API key in the result.
+
+```python
+client = Dreep(signing_secret="...")  # or set DREEP_SIGNING_SECRET
+
+link = client.signed_url(asset, expires_in=3600)
+# https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.png?exp=1774003600&sig=6b10e0…
+```
+
+## Signature
+
+```python
+client.signed_url(asset, *, expires_in, transform=None) -> str
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `asset` | `AssetLike` | **Required.** The asset itself — its `id` is what gets signed |
+| `expires_in` | `int \| timedelta` | **Required.** Seconds, or a `timedelta`, until the link stops working |
+| `transform` | `Transform` | A transform to apply. Not covered by the signature |
+
+```python
+from datetime import timedelta
+
+client.signed_url(asset, expires_in=timedelta(minutes=15))
+client.signed_url(asset, expires_in=3600, transform={"width": 400, "format": "webp"})
+```
+
+Unlike [`url()`](/python-sdk/media/build-url), this needs the asset, not just its URL: the
+signature is computed over the asset's id.
+
+## What is signed
+
+The signature covers the asset id and the expiry time — `HMAC-SHA256` over `"{id}:{exp}"` —
+and nothing else. One signed link can therefore be resized by a frontend (`&width=…`)
+without being signed again.
+
+Once the link expires, or if anyone edits `exp` or `sig`, the API answers `401`.
+
+<Warning>
+  A signed URL is a bearer token. Anyone holding it can fetch the file until it expires,
+  with no API key. Keep expiry times short.
+</Warning>
+
+## Access control is set on folders
+
+Access control is set on **top-level folders** and inherited by everything beneath them.
+Create the signed folder first, then upload under it:
+
+```python
+client.create_folder(name="premium", access_control_type="signed")
+asset = client.upload(Path("lesson.mp4"), key="premium/course-1/lesson-1.mp4")
+
+client.signed_url(asset, expires_in=3600)
+```
+
+See [Private media](/security/private-media) and [Signed URLs](/security/signed-urls).
+
+## Errors
+
+Calling it without a signing secret raises `DreepError` — the SDK has nothing to sign with.
+Set `signing_secret` on the client, or the `DREEP_SIGNING_SECRET` environment variable; it
+is on the **API Keys** page of your dashboard.

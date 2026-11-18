@@ -1,0 +1,58 @@
+---
+title: "Delete Media"
+description: "Permanently delete an asset with client.delete_media()."
+---
+
+Deletes an asset and every cached transform derived from it.
+
+```python
+client.delete_media(asset.id)
+```
+
+## Signature
+
+```python
+client.delete_media(media_id, *, timeout=NOT_GIVEN) -> None
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `media_id` | `str` | **Required.** The asset's `id` |
+
+Returns `None`. A successful delete has no body.
+
+<Warning>
+  This is immediate and permanent. URLs already handed out stop resolving — including
+  [signed URLs](/python-sdk/media/signed-url) that have not expired yet.
+</Warning>
+
+## Deletes are not retried
+
+Writes are never retried automatically, deletes included. If a delete fails with a network
+error and you retry it by hand, a `DreepNotFoundError` usually means the first attempt
+actually succeeded:
+
+```python
+from dreep import DreepNotFoundError
+
+try:
+    client.delete_media(media_id)
+except DreepNotFoundError:
+    pass  # already gone — treat as success
+```
+
+## Deleting a whole folder
+
+There is no endpoint for deleting a folder. To clear one, list it and delete the assets:
+
+```python
+for item in client.list_all_media(folder="temp", recursive=True):
+    client.delete_media(item.id)
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | No such asset, or it was already deleted |
+| `DreepAuthError` | The key doesn't belong to the asset's project |

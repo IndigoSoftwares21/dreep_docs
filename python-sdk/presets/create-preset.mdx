@@ -1,0 +1,62 @@
+---
+title: "Create Preset"
+description: "Save a named transform with client.create_preset()."
+---
+
+Saves a named transform. Apply it anywhere with `{"preset": key}` — and change it later
+without touching the URLs that use it.
+
+```python
+preset = client.create_preset(
+    key="thumb",
+    name="Thumbnail",
+    transform={"width": 200, "height": 200, "fit": "cover", "format": "webp"},
+)
+```
+
+## Signature
+
+```python
+client.create_preset(*, key, name, transform, timeout=NOT_GIVEN) -> Preset
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `key` | `str` | **Required.** Lowercase letters, numbers and underscores only |
+| `name` | `str` | **Required.** Human-readable label for the dashboard |
+| `transform` | [`Transform`](/python-sdk/media/build-url#parameters) | **Required.** What the preset applies. Must include a `format` |
+
+## Returns
+
+```python
+preset.id      # "4c2a91e0-…" — what delete_preset() takes
+preset.key     # "thumb"
+preset.name    # "Thumbnail"
+preset.params  # {"width": 200, "height": 200, "fit": "cover", "format": "webp"}
+```
+
+## Using it
+
+```python
+client.url(asset, {"preset": "thumb"})
+# …/fetch/2f928a3f-1d2a-4a2b?p=thumb
+
+# On upload, instead of a transform
+client.upload(Path("hero.jpg"), preset_key="thumb")
+```
+
+Change the preset later and every URL using it follows — which is the point of naming a
+transform rather than repeating it.
+
+<Note>
+  A preset must include a `format`. Preset keys may only contain lowercase letters, digits
+  and underscores, so `thumb_2x` is valid and `Thumb-2x` is not.
+</Note>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepValidationError` | Invalid key characters, a missing `format`, or a key already in use |
+| `DreepLimitError` | The plan's preset limit is reached |
+| `TypeError` | A misspelled transform key |

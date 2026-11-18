@@ -1,0 +1,150 @@
+---
+title: "Introduction"
+description: "The official Python SDK for the Dreep API — install, authenticate, and make your first call."
+---
+
+The `dreep` package wraps every endpoint in this reference, adds typed errors, and
+generates signed URLs correctly — including the one detail that is easy to get wrong by
+hand (see [Signed URLs](/python-sdk/media/signed-url)).
+
+- **Sync and async.** `Dreep` and `AsyncDreep` share one API. Async runs on asyncio and trio.
+- **Fully typed.** Ships `py.typed`. Transforms are a `TypedDict` with `Literal` values, so
+  `fit="squish"` fails type checking before it ships.
+- **One dependency.** [`httpx`](https://www.python-httpx.org/), and nothing else.
+
+## Installation
+
+```bash
+pip install dreep
+```
+
+Or with [uv](https://docs.astral.sh/uv/) or [Poetry](https://python-poetry.org/):
+
+```bash
+uv add dreep
+```
+
+Requires Python 3.10 or later.
+
+## Authentication
+
+Create an API key on the **API Keys** page of your dashboard.
+
+```python
+from dreep import Dreep
+
+client = Dreep(
+    api_key="drp_live_...",      # defaults to DREEP_API_KEY
+    signing_secret="...",        # defaults to DREEP_SIGNING_SECRET, only for signed_url()
+)
+```
+
+Both arguments fall back to environment variables, so the usual setup is simply:
+
+```bash
+export DREEP_API_KEY="drp_live_..."
+```
+
+```python
+client = Dreep()
+```
+
+<Warning>
+  Your API key is a full-project credential and must stay server-side. Anyone holding it
+  can read, upload and delete every asset in the project. It never appears in logs or in
+  the client's `repr()`.
+
+  To upload from a browser, use the [presigned upload](/python-sdk/upload/create-presigned-upload)
+  flow, where your backend hands the client a short-lived URL and the key never leaves
+  your server.
+</Warning>
+
+## Quickstart
+
+```python
+from pathlib import Path
+from dreep import Dreep
+
+client = Dreep()
+
+# Upload — the original is stored once
+asset = client.upload(Path("hero.jpg"), folder="marketing/2026")
+
+asset.url
+# https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.jpg
+
+# Deliver any size or format from that one original — no network call
+client.url(asset, {"width": 400, "format": "webp"})
+# …/fetch/2f928a3f-1d2a-4a2b.jpg?format=webp&width=400
+```
+
+`file` can be `bytes`, a `pathlib.Path`, or a binary file object. A plain `str` is rejected
+on purpose, because it could be either a path or the file's content.
+
+## Async
+
+`AsyncDreep` mirrors the sync client method for method, including the lazy iterator:
+
+```python
+from dreep import AsyncDreep
+
+async with AsyncDreep() as client:
+    asset = await client.upload(Path("hero.jpg"))
+    async for item in client.list_all_media(folder="marketing"):
+        print(item.filename, item.size_bytes)
+```
+
+Both clients are context managers. Outside a `with` block, call `client.close()` (or
+`await client.aclose()`) when you are done, or hand in your own `httpx` client and keep
+ownership of it.
+
+## Method reference
+
+| Method | Does | Endpoint |
+| :--- | :--- | :--- |
+| [`upload()`](/python-sdk/upload/upload-media) | Upload a file | `POST /upload` |
+| [`presign_upload()`](/python-sdk/upload/create-presigned-upload) | Start a direct-to-storage upload | `POST /upload/presign` |
+| [`upload_presigned()`](/python-sdk/upload/create-presigned-upload#upload-presigned) | Presign, PUT and confirm in one call | all three |
+| [`confirm_upload()`](/python-sdk/upload/confirm-upload) | Finalize a presigned upload | `POST /upload/{id}/confirm` |
+| [`url()`](/python-sdk/media/build-url) | Transform at delivery time | none — builds a string |
+| [`signed_url()`](/python-sdk/media/signed-url) | Time-limited link for a signed folder | none — builds a string |
+| [`list_media()`](/python-sdk/media/list-media) | List one page | `GET /media` |
+| [`list_all_media()`](/python-sdk/media/list-all-media) | Iterate every page | `GET /media` |
+| [`delete_media()`](/python-sdk/media/delete-media) | Delete an asset | `DELETE /media/{id}` |
+| [`create_folder()`](/python-sdk/folders/create-folder) | Create a folder | `POST /folders` |
+| [`list_folders()`](/python-sdk/folders/list-folders) | List folders | `GET /folders` |
+| [`create_preset()`](/python-sdk/presets/create-preset) | Save a named transform | `POST /presets` |
+| [`list_presets()`](/python-sdk/presets/list-presets) | List presets | `GET /presets` |
+| [`delete_preset()`](/python-sdk/presets/delete-preset) | Delete a preset | `DELETE /presets/{id}` |
+| [`remove_background()`](/python-sdk/bg-remove/remove-background) | Cut out the subject | `POST /bg-remove` |
+| [`extract_text()`](/python-sdk/ocr/extract-text) | Run OCR | `POST /ocr` |
+| [`fetch_text()`](/python-sdk/ocr/extract-text#fetch-text) | OCR text of a stored asset | `GET fetch/{id}?format=txt` |
+| [`convert_document()`](/python-sdk/documents/convert-document) | Convert a document | `POST /convert` |
+| [`get_usage()`](/python-sdk/usage/get-usage) | Storage and object counts | `GET /usage` |
+
+Every method takes keyword-only arguments after the file, so adding an argument never
+changes the meaning of the others.
+
+## Responses
+
+Responses come back as frozen dataclasses with snake_case attributes. Numbers the API
+sends as strings (`sizeBytes: "245000"` — Postgres `BIGINT` serialises that way over JSON)
+are converted to `int`, so `a.size_bytes + b.size_bytes` adds rather than concatenating.
+
+Any field the SDK doesn't model yet is still available on `.raw`:
+
+```python
+asset.raw["someNewField"]
+```
+
+## Timeouts
+
+JSON calls time out after 30 seconds. Uploads don't — a large file can legitimately take
+minutes — so pass `timeout=` on the call to bound one:
+
+```python
+client.upload(path, timeout=120)
+client = Dreep(timeout=None)   # no limit on any call
+```
+
+See [Errors & Retries](/python-sdk/errors) for what is retried and what deliberately isn't.

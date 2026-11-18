@@ -1,0 +1,90 @@
+---
+title: "Create Folder"
+description: "Create a folder and set its access control with client.create_folder()."
+---
+
+Creates a folder: one by `name`, or a whole chain by `path`.
+
+```python
+folder = client.create_folder(name="premium", access_control_type="signed")
+```
+
+Uploads create folders on demand, so you only need this to set access control before
+anything lands in them.
+
+## Signature
+
+```python
+client.create_folder(
+    *,
+    name=None,
+    path=None,
+    parent_id=None,
+    parent_path=None,
+    access_control_type=None,
+    default_expiry_seconds=None,
+    timeout=NOT_GIVEN,
+) -> Folder
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `name` | `str` | A single folder name |
+| `path` | `str` | A whole path — every missing folder in the chain is created |
+| `parent_id` | `str` | UUID of the parent folder |
+| `parent_path` | `str` | Slug path of the parent folder |
+| `access_control_type` | `"public" \| "private" \| "signed"` | Access control. Root folders only |
+| `default_expiry_seconds` | `int` | Default lifetime of signed links for this folder |
+
+## Returns
+
+```python
+folder.id                      # "78b52933-…"
+folder.name                    # "premium"
+folder.slug                    # "premium"
+folder.path                    # "premium"
+folder.parent_id               # None for a root folder
+folder.access_control_type     # "signed"
+folder.default_expiry_seconds  # 3600
+```
+
+## Access control is inherited
+
+Access control can only be set on a **root** folder — `name=` with no parent — and
+everything beneath it inherits the setting. Create the root first, then upload into it:
+
+```python
+client.create_folder(name="premium", access_control_type="signed")
+
+# Nested folders are created by the upload and inherit "signed"
+asset = client.upload(Path("lesson.mp4"), key="premium/course-1/lesson-1.mp4")
+
+client.signed_url(asset, expires_in=3600)
+```
+
+| Type | Who can fetch |
+| :--- | :--- |
+| `public` | Anyone with the URL |
+| `private` | Nobody — the API refuses delivery |
+| `signed` | Anyone with an unexpired [signed URL](/python-sdk/media/signed-url) |
+
+## Creating a whole path
+
+```python
+client.create_folder(path="courses/premium/2026")
+```
+
+Every missing folder in the chain is created. The returned `Folder` is the deepest one.
+
+<Note>
+  There is no endpoint for deleting a folder. Clear one by deleting its assets — see
+  [`delete_media()`](/python-sdk/media/delete-media).
+</Note>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepValidationError` | `access_control_type` on a non-root folder, or an invalid name |
+| `DreepLimitError` | The plan's folder limit is reached |
+| `DreepNotFoundError` | `parent_id` or `parent_path` doesn't exist |

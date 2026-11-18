@@ -1,0 +1,110 @@
+---
+title: "Extract Text (OCR)"
+description: "Run OCR over an image or PDF with client.extract_text(), or read a stored asset's text with client.fetch_text()."
+---
+
+## extract_text
+
+Runs OCR over an image or PDF you upload.
+
+```python
+result = client.extract_text(Path("invoice.pdf"))
+print(result.text)
+```
+
+```python
+client.extract_text(
+    file,
+    *,
+    filename=None,
+    folder=None,
+    folder_id=None,
+    auto_create_folders=None,
+    include_blocks=None,
+    timeout=NOT_GIVEN,
+) -> OCRResult
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `bytes \| Path \| BinaryIO` | **Required.** Image or PDF to read |
+| `filename` | `str` | Name for the source, needed when passing `bytes` |
+| `folder` | `str` | Store the extracted text as a `.txt` asset in this folder |
+| `folder_id` | `str` | UUID of the destination folder |
+| `auto_create_folders` | `bool` | `False` to require the path already exists |
+| `include_blocks` | `bool` | Also return line-level blocks with bounding boxes |
+
+### Returns
+
+```python
+result.text          # "INVOICE\nAcme Ltd\n…"
+result.blocks        # [] unless include_blocks=True
+result.saved_asset   # SavedTextAsset when a folder was given, else None
+```
+
+With `include_blocks=True`, each block carries the recognised line and where it sits on the
+page:
+
+```python
+result = client.extract_text(Path("invoice.pdf"), include_blocks=True)
+
+for block in result.blocks:
+    print(block)  # line text with its bounding box
+```
+
+Passing a folder also stores the text as a `.txt` asset, so you can serve or re-read it
+later without running OCR again:
+
+```python
+result = client.extract_text(Path("invoice.pdf"), folder="invoices/text")
+result.saved_asset.id
+```
+
+## fetch_text
+
+For an asset **already in Dreep**, read its text instead of re-uploading the file. The
+result is cached after the first read, so repeat calls don't re-run OCR.
+
+```python
+text = client.fetch_text(asset)
+```
+
+```python
+client.fetch_text(asset, *, expires_in=None, timeout=NOT_GIVEN) -> str
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `asset` | `AssetLike` | **Required.** The stored image or PDF |
+| `expires_in` | `int \| timedelta` | Needed for an asset in a signed folder — the request is then signed with your signing secret |
+
+Under the hood this is just the asset's delivery URL with `format=txt`, which is why it
+costs no upload.
+
+```python
+# An asset in a signed folder
+text = client.fetch_text(asset, expires_in=300)
+```
+
+### Still processing
+
+OCR on a long PDF can outlive the request. The API answers `202` while it finishes, which
+the SDK raises as `DreepProcessingError`:
+
+```python
+from dreep import DreepProcessingError
+
+try:
+    text = client.fetch_text(asset)
+except DreepProcessingError:
+    # not ready yet — try again shortly
+    ...
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepValidationError` | Unsupported file type — OCR takes images and PDFs |
+| `DreepLimitError` | The plan's OCR quota is used up |
+| `DreepProcessingError` | `fetch_text()` while extraction is still running |

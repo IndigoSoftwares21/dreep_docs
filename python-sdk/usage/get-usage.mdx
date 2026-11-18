@@ -1,0 +1,48 @@
+---
+title: "Get Usage"
+description: "Read storage and object counts with client.get_usage()."
+---
+
+Storage consumed and object counts for the project.
+
+```python
+usage = client.get_usage()
+
+print(f"{usage.storage_bytes / 1024**3:.2f} GB")
+print(f"{usage.image_count + usage.file_count} objects in {usage.folder_count} folders")
+```
+
+## Signature
+
+```python
+client.get_usage(*, timeout=NOT_GIVEN) -> Usage
+```
+
+## Returns
+
+```python
+usage.storage_bytes  # 4_823_117_002 — int
+usage.image_count    # 1840
+usage.file_count     # 265
+usage.folder_count   # 37
+```
+
+`storage_bytes` is an `int`. The API sends it as a string, so arithmetic on it works
+without converting first.
+
+## Plan limits
+
+This reports what you are using, not what you are allowed. A write that would cross a plan
+ceiling fails with `DreepLimitError`, which carries the limit that was hit:
+
+```python
+from dreep import DreepLimitError
+
+try:
+    client.upload(Path("hero.jpg"))
+except DreepLimitError as error:
+    print(f"{error.feature_key}: {error.used} of {error.limit}")
+```
+
+See [Errors & Retries](/python-sdk/errors) and the
+[`GET /usage`](/api-reference/usage/get-limits) endpoint.

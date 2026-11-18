@@ -1,0 +1,70 @@
+---
+title: "Security"
+description: "How the Dreep MCP server handles your API key, deletes, file access and signed links."
+---
+
+## Your API key never reaches the agent
+
+The key lives in the server's environment and is sent only to the Dreep API. It isn't
+exposed as a tool argument, isn't returned in any tool result, and isn't part of anything
+the model sees.
+
+<Warning>
+  That key can read, upload and delete everything in the project. Treat the machine running
+  the server as a place where it is safe to keep a production credential, and use a separate
+  project — or a separate key — for experimentation.
+</Warning>
+
+## Deletes are off by default
+
+`delete_media` and `delete_preset` are not registered unless `DREEP_MCP_ALLOW_DELETE` is
+set. When they are, both carry MCP's destructive annotation, so clients prompt before
+running them.
+
+Deleting an asset is immediate and permanent: cached transforms go with it, and URLs
+already handed out — including signed ones that haven't expired — stop resolving.
+
+## File access is scoped
+
+The file tools read from disk, so restrict where they may look with
+[`DREEP_MCP_FILE_ROOTS`](/mcp/configuration#file-access):
+
+```json
+"env": {
+  "DREEP_MCP_FILE_ROOTS": "/Users/you/Projects/assets"
+}
+```
+
+| Transport | Unset means |
+| :--- | :--- |
+| stdio | Any file the server's user can read |
+| HTTP | No local file reads at all |
+
+Over stdio the server runs as you, so an unset value means the agent can upload anything
+you could — worth narrowing before pointing an autonomous agent at it.
+
+## The HTTP transport is locked down by default
+
+- Binds to `127.0.0.1` unless you pass `--host`.
+- Refuses any other bind address unless `DREEP_MCP_HTTP_TOKEN` is set.
+- Compares tokens in constant time.
+- Does not read local files unless `DREEP_MCP_FILE_ROOTS` is set.
+
+Put it behind HTTPS before exposing it. See [Remote server](/mcp/remote).
+
+## Signed URLs are bearer tokens
+
+A [signed URL](/security/signed-urls) fetches the asset without an API key, for anyone
+holding it, until it expires. When an agent generates one, it ends up in a conversation
+transcript — so keep `expires_in_seconds` short, and prefer short-lived links over
+long-lived ones that get pasted into chat histories.
+
+The signature covers the asset id and expiry only, so a transform can be appended to a
+signed link without re-signing it. That is by design, and means a link's reach is bounded by
+its expiry, not by its parameters.
+
+## Reporting a vulnerability
+
+Report security issues privately through the
+[dreep-mcp repository](https://github.com/IndigoSoftwares21/dreep-mcp)'s security policy,
+rather than opening a public issue.

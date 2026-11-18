@@ -1,0 +1,73 @@
+---
+title: "Async Client"
+description: "AsyncDreep mirrors the sync client, on asyncio or trio."
+---
+
+`AsyncDreep` has the same methods, arguments and return types as `Dreep`. Every call is
+awaited, and `list_all_media()` becomes an async iterator.
+
+```python
+from pathlib import Path
+from dreep import AsyncDreep
+
+async with AsyncDreep() as client:
+    asset = await client.upload(Path("hero.jpg"), folder="marketing")
+
+    async for item in client.list_all_media(folder="marketing"):
+        print(item.filename, item.size_bytes)
+```
+
+It runs on asyncio and on [trio](https://trio.readthedocs.io/), because the underlying
+`httpx` client does.
+
+## URL building stays synchronous
+
+[`url()`](/python-sdk/media/build-url) and
+[`signed_url()`](/python-sdk/media/signed-url) make no network call, so they are not
+coroutines on either client:
+
+```python
+link = client.url(asset, {"width": 400})          # no await
+link = client.signed_url(asset, expires_in=3600)  # no await
+```
+
+## Closing
+
+Use the client as an async context manager, or close it yourself:
+
+```python
+client = AsyncDreep()
+try:
+    await client.get_usage()
+finally:
+    await client.aclose()
+```
+
+If you pass your own `httpx.AsyncClient`, you keep ownership of it and the SDK leaves it
+open:
+
+```python
+import httpx
+
+async with httpx.AsyncClient(proxy="http://proxy.internal:8080") as http:
+    client = AsyncDreep(http_client=http)
+    await client.get_usage()
+```
+
+## Concurrency
+
+Methods are safe to run concurrently on one client — connections are pooled:
+
+```python
+import asyncio
+
+async with AsyncDreep() as client:
+    assets = await asyncio.gather(
+        client.upload(Path("one.jpg")),
+        client.upload(Path("two.jpg")),
+        client.upload(Path("three.jpg")),
+    )
+```
+
+Each upload counts separately against your plan, and uploads are never retried
+automatically — see [Errors & Retries](/python-sdk/errors).
