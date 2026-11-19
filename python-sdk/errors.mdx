@@ -1,0 +1,143 @@
+---
+title: "Errors & Retries"
+description: "Typed exceptions, what the SDK retries, and what it deliberately does not."
+---
+
+Every failure raises a subclass of `DreepError`, carrying the HTTP status and the API's
+message. Catch `DreepError` for everything, or a specific subclass for the cases worth
+handling differently — without comparing status codes.
+
+```python
+from pathlib import Path
+from dreep import DreepAPIError, DreepError, DreepLimitError, DreepNotFoundError
+
+try:
+    asset = client.upload(Path("hero.jpg"))
+except DreepLimitError as error:       # 402 — the plan ran out
+    print(f"{error.feature_key}: {error.used} of {error.limit}")
+except DreepNotFoundError:             # 404
+    ...
+except DreepAPIError as error:         # any other answer from the API
+    print(error.status, error.message, error.request_id)
+except DreepError as error:            # no answer at all: connection, timeout
+    print(error.message)
+```
+
+| Exception | Status | Raised when |
+| :--- | :--- | :--- |
+| `DreepValidationError` | 400, 413 | Invalid parameters, or the file is too large — `validation_errors` lists each field |
+| `DreepAuthError` | 401, 403 | Missing, malformed or revoked API key |
+| `DreepLimitError` | 402 | Plan limit reached — carries `feature_key`, `used`, `limit` |
+| `DreepNotFoundError` | 404 | Unknown asset, folder, preset or upload |
+| `DreepConflictError` | 409 | Confirming an upload whose bytes haven't landed yet |
+| `DreepRateLimitError` | 429 | Too many requests — carries `retry_after` |
+| `DreepServerError` | 5xx | The API failed |
+| `DreepProcessingError` | 202 | A result is still being produced where a finished one was needed |
+| `DreepConnectionError` | — | No response arrived: DNS failure, refused or dropped connection |
+| `DreepTimeoutError` | — | The request timed out. Subclass of `DreepConnectionError` |
+
+Anything unmapped surfaces as `DreepAPIError` with its `status` intact.
+
+The split matters when you read attributes: `DreepAPIError` (the API answered) carries
+`status`, `code`, `validation_errors`, `request_id` and the decoded `body`.
+`DreepConnectionError` and `DreepProcessingError` never reached a status, so they carry
+only `message`. `DreepError` is the base of all of them.
+
+<Note>
+  Quote `request_id` when reporting a problem — it identifies the exact request in the
+  API's logs.
+</Note>
+
+## Validation errors
+
+A 400 carries the offending fields, so you can map them back onto a form:
+
+```python
+from dreep import DreepValidationError
+
+try:
+    client.upload(data, filename="hero.jpg")
+except DreepValidationError as error:
+    for issue in error.validation_errors or []:
+        print(issue)
+```
+
+## Plan limits
+
+A 402 means the project hit a ceiling — storage, transformations, folders, presets or
+seats. The metadata tells you which, without parsing the message:
+
+```python
+except DreepLimitError as error:
+    print(f"{error.feature_key}: {error.used} of {error.limit}")
+```
+
+## Rate limits
+
+```python
+from dreep import DreepRateLimitError
+
+try:
+    client.list_media()
+except DreepRateLimitError as error:
+    wait_for(error.retry_after)
+```
+
+Reads are already retried for you on 429 — see below — so this surfaces only once the
+retries are exhausted.
+
+## What is retried
+
+- **GET requests only.** Retried twice by default on 429, 5xx and connection failures,
+  with exponential backoff and jitter, honouring `Retry-After`.
+- **Writes are never retried automatically.** Retrying an upload could store the file
+  twice and bill it twice; retrying a delete could remove something recreated in between.
+
+```python
+client = Dreep(max_retries=0)   # turn retries off
+client = Dreep(max_retries=5)   # or push them up
+```
+
+Retries are logged to the `dreep` logger:
+
+```python
+import logging
+
+logging.getLogger("dreep").setLevel(logging.INFO)
+```
+
+## Retrying a write yourself
+
+The two cases worth handling by hand:
+
+```python
+from dreep import DreepConflictError, DreepNotFoundError
+
+# 1. A presigned confirm, while the bytes settle in storage
+try:
+    asset = client.confirm_upload(upload.id)
+except DreepConflictError:
+    ...  # retry the confirm, never the upload
+
+# 2. A delete that failed with a network error
+try:
+    client.delete_media(media_id)
+except DreepNotFoundError:
+    pass  # the first attempt had already succeeded
+```
+
+[`upload_presigned()`](/python-sdk/upload/create-presigned-upload#upload-presigned) already
+handles the first case.
+
+## Timeouts
+
+JSON calls time out after 30 seconds. Uploads have no default limit, because a large file
+can legitimately take minutes:
+
+```python
+client.upload(path, timeout=120)    # bound one call
+client = Dreep(timeout=None)        # no limit anywhere
+```
+
+A timeout raises `DreepTimeoutError`, a subclass of `DreepConnectionError`, so catching the
+latter covers both.

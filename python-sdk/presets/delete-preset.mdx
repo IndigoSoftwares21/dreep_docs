@@ -1,0 +1,40 @@
+---
+title: "Delete Preset"
+description: "Delete a saved preset with client.delete_preset()."
+---
+
+Deletes a preset by `id`.
+
+```python
+client.delete_preset(preset.id)
+```
+
+## Signature
+
+```python
+client.delete_preset(preset_id, *, timeout=NOT_GIVEN) -> None
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `preset_id` | `str` | **Required.** The preset's `id`, not its `key` |
+
+Returns `None`.
+
+<Warning>
+  URLs that reference the preset start failing — `?p=thumb` has nothing to resolve to.
+  Repoint them at an explicit transform before deleting, or recreate the key.
+</Warning>
+
+Find the `id` for a key with [`list_presets()`](/python-sdk/presets/list-presets):
+
+```python
+presets = {p.key: p for p in client.list_presets()}
+client.delete_preset(presets["thumb"].id)
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | No such preset, or a `key` was passed instead of an `id` |

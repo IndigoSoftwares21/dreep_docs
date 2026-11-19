@@ -222,6 +222,91 @@
         ]
       },
       {
+        "tab": "Python SDK",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "python-sdk/introduction"
+            ]
+          },
+          {
+            "group": "Upload",
+            "icon": "cloud-arrow-up",
+            "pages": [
+              "python-sdk/upload/upload-media",
+              "python-sdk/upload/create-presigned-upload",
+              "python-sdk/upload/confirm-upload"
+            ]
+          },
+          {
+            "group": "OCR",
+            "icon": "text-size",
+            "pages": [
+              "python-sdk/ocr/extract-text"
+            ]
+          },
+          {
+            "group": "Background Removal",
+            "icon": "eraser",
+            "pages": [
+              "python-sdk/bg-remove/remove-background"
+            ]
+          },
+          {
+            "group": "Documents",
+            "icon": "file-lines",
+            "pages": [
+              "python-sdk/documents/convert-document"
+            ]
+          },
+          {
+            "group": "Media",
+            "icon": "image",
+            "pages": [
+              "python-sdk/media/build-url",
+              "python-sdk/media/signed-url",
+              "python-sdk/media/list-media",
+              "python-sdk/media/list-all-media",
+              "python-sdk/media/delete-media"
+            ]
+          },
+          {
+            "group": "Folders",
+            "icon": "folder",
+            "pages": [
+              "python-sdk/folders/create-folder",
+              "python-sdk/folders/list-folders"
+            ]
+          },
+          {
+            "group": "Presets",
+            "icon": "sliders",
+            "pages": [
+              "python-sdk/presets/create-preset",
+              "python-sdk/presets/list-presets",
+              "python-sdk/presets/delete-preset"
+            ]
+          },
+          {
+            "group": "Usage & Billing",
+            "icon": "chart-simple",
+            "pages": [
+              "python-sdk/usage/get-usage"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "triangle-exclamation",
+            "pages": [
+              "python-sdk/async",
+              "python-sdk/errors"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Go SDK",
         "groups": [
           {
@@ -294,6 +379,35 @@
             "icon": "triangle-exclamation",
             "pages": [
               "go-sdk/errors"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "MCP Server",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "mcp/introduction",
+              "mcp/installation"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "wrench",
+            "pages": [
+              "mcp/tools",
+              "mcp/configuration"
+            ]
+          },
+          {
+            "group": "Hosting & Security",
+            "icon": "shield-check",
+            "pages": [
+              "mcp/remote",
+              "mcp/security"
             ]
           }
         ]

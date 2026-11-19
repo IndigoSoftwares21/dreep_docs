@@ -1,0 +1,37 @@
+---
+title: "List Presets"
+description: "List saved presets with client.list_presets()."
+---
+
+Every saved preset on the project.
+
+```python
+for preset in client.list_presets():
+    print(preset.key, preset.params)
+```
+
+## Signature
+
+```python
+client.list_presets(*, timeout=NOT_GIVEN) -> list[Preset]
+```
+
+Returns a plain list — presets aren't paginated.
+
+```python
+preset.id      # "4c2a91e0-…"
+preset.key     # "thumb"
+preset.name    # "Thumbnail"
+preset.params  # {"width": 200, "height": 200, "fit": "cover", "format": "webp"}
+```
+
+## Finding one by key
+
+Delivery URLs use the `key`, while [`delete_preset()`](/python-sdk/presets/delete-preset)
+takes the `id`, so this is the usual way to get from one to the other:
+
+```python
+presets = {p.key: p for p in client.list_presets()}
+
+client.delete_preset(presets["thumb"].id)
+```

@@ -1,0 +1,71 @@
+---
+title: "Remove Background"
+description: "Cut the subject out of an image with client.remove_background()."
+---
+
+Cuts the subject out of an image and stores the result with its alpha channel intact.
+
+```python
+cutout = client.remove_background(Path("product.jpg"), folder="products")
+cutout.url
+```
+
+## Signature
+
+```python
+client.remove_background(
+    file,
+    *,
+    filename=None,
+    format=None,
+    folder=None,
+    folder_id=None,
+    auto_create_folders=None,
+    timeout=NOT_GIVEN,
+) -> BackgroundRemovedAsset
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `bytes \| Path \| BinaryIO` | **Required.** The image to cut out |
+| `filename` | `str` | Name for the source, needed when passing `bytes` |
+| `format` | `"png" \| "webp"` | Output format. Only alpha-capable formats — a JPEG cutout would lose its transparency |
+| `folder` | `str` | Slug path of the destination |
+| `folder_id` | `str` | UUID of an existing folder |
+| `auto_create_folders` | `bool` | `False` to require the path already exists |
+
+## Returns
+
+```python
+cutout.id           # "7d41c0ba-…"
+cutout.url          # "https://cdn.dreep.cloud/api/v1/fetch/7d41c0ba-….png"
+cutout.storage_key  # "products/product.png"
+cutout.format       # "png"
+cutout.width        # 1400
+cutout.height       # 1400
+cutout.size_bytes   # 180400 — int
+```
+
+## One cutout, any background
+
+The removal is billed once. The transparent result can then be served on any background
+colour straight from the delivery URL:
+
+```python
+client.url(cutout, {"bg": "ffffff"})   # on white
+client.url(cutout, {"bg": "000000"})   # on black
+client.url(cutout, {"bg": "ffffffcc"}) # white at 80% opacity
+```
+
+Resizing works the same way, so one cutout covers every placement:
+
+```python
+client.url(cutout, {"width": 400, "format": "webp"})
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepValidationError` | Not an image, or a format without an alpha channel |
+| `DreepLimitError` | The plan's background-removal quota is used up |

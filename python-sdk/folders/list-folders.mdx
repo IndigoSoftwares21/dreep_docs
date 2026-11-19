@@ -1,0 +1,65 @@
+---
+title: "List Folders"
+description: "List folders and their access control with client.list_folders()."
+---
+
+Lists folders with their full paths. With no filter it returns every folder at any depth —
+enough to build the whole tree in one call.
+
+```python
+for folder in client.list_folders():
+    print(folder.path, folder.access_control_type)
+```
+
+## Signature
+
+```python
+client.list_folders(
+    *,
+    path=None,
+    parent_id=None,
+    root_only=False,
+    timeout=NOT_GIVEN,
+) -> FolderListing
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `path` | `str` | List the children of this folder |
+| `parent_id` | `str` | List the children of this folder, by UUID |
+| `root_only` | `bool` | List only top-level folders |
+
+## Returns
+
+```python
+listing = client.list_folders(path="courses")
+
+listing.folders         # list[Folder] — the children
+listing.current_folder  # Folder — "courses" itself, when a filter was given
+```
+
+Each [`Folder`](/python-sdk/folders/create-folder#returns) carries its `path`,
+`parent_id` and `access_control_type`.
+
+## Which access control applies
+
+Access control lives on root folders and is inherited. To see what governs a nested asset,
+look at the root of its path:
+
+```python
+roots = {f.path: f.access_control_type for f in client.list_folders(root_only=True).folders}
+
+roots["premium"]  # "signed" — so everything under premium/ is signed
+```
+
+## Building the tree
+
+```python
+folders = client.list_folders().folders
+children = {}
+
+for folder in folders:
+    children.setdefault(folder.parent_id, []).append(folder)
+```
+
+One request returns every folder, so no pagination is needed here.

@@ -1,0 +1,68 @@
+---
+title: "List All Media"
+description: "Iterate every asset across every page with client.list_all_media()."
+---
+
+Yields every asset across every page, fetching pages lazily. The next page is requested
+only when the item after the last one is asked for, so breaking out of the loop stops the
+requests too.
+
+```python
+for item in client.list_all_media(folder="courses", recursive=True):
+    print(item.filename, item.size_bytes)
+```
+
+## Signature
+
+```python
+client.list_all_media(
+    *,
+    limit=20,
+    folder=None,
+    folder_id=None,
+    recursive=None,
+    timeout=NOT_GIVEN,
+) -> Iterator[MediaItem]
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `limit` | `int` | Page size used internally, default `20`. Larger pages mean fewer requests |
+| `folder` | `str` | Slug path to list |
+| `folder_id` | `str` | UUID of the folder to list |
+| `recursive` | `bool` | Include assets in subfolders |
+
+Yields [`MediaItem`](/python-sdk/media/list-media#returns) objects — the same shape
+`list_media()` returns, without the pagination wrapper.
+
+## Stopping early
+
+Because pages are fetched lazily, stopping the loop stops the requests:
+
+```python
+# One request, even if the folder holds thousands of assets
+for item in client.list_all_media(folder="courses"):
+    if item.filename.endswith(".mp4"):
+        first_video = item
+        break
+```
+
+## Async
+
+`AsyncDreep.list_all_media()` is an async iterator over the same items:
+
+```python
+async with AsyncDreep() as client:
+    async for item in client.list_all_media(folder="courses"):
+        print(item.filename)
+```
+
+## Collecting the lot
+
+```python
+items = list(client.list_all_media(folder="courses"))
+total_bytes = sum(item.size_bytes for item in items)
+```
+
+`size_bytes` is an `int`, so this adds rather than concatenating — the API sends it as a
+string and the SDK converts it.

@@ -1,0 +1,96 @@
+---
+title: "Configuration"
+description: "Environment variables and command-line options for the Dreep MCP server."
+---
+
+## Environment variables
+
+| Variable | Required | Purpose |
+| :--- | :--- | :--- |
+| `DREEP_API_KEY` | yes | Your project API key |
+| `DREEP_SIGNING_SECRET` | for signed URLs | The URL Signing Secret from the dashboard's **API Keys** page |
+| `DREEP_MCP_ALLOW_DELETE` | no | `1` registers `delete_media` and `delete_preset`. Off by default |
+| `DREEP_MCP_FILE_ROOTS` | no | Directories the file tools may read, separated by `:` (`;` on Windows) |
+| `DREEP_MCP_HTTP_TOKEN` | for public HTTP | Bearer token every HTTP request must present |
+
+Set them in the `env` block of your client's config — see
+[Installation](/mcp/installation).
+
+## Deletes
+
+The delete tools are not registered unless you ask for them:
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": {
+        "DREEP_API_KEY": "drp_live_your_key",
+        "DREEP_MCP_ALLOW_DELETE": "1"
+      }
+    }
+  }
+}
+```
+
+With it set, `delete_media` and `delete_preset` appear, both marked destructive so clients
+prompt before running them. Deleting an asset is permanent and takes its cached transforms
+and unexpired signed URLs with it.
+
+## File access
+
+`DREEP_MCP_FILE_ROOTS` limits which directories the file tools (`upload_file`,
+`remove_background`, `extract_text`, `convert_document`) may read:
+
+```json
+"env": {
+  "DREEP_API_KEY": "drp_live_your_key",
+  "DREEP_MCP_FILE_ROOTS": "/Users/you/Projects/assets:/Users/you/Desktop/uploads"
+}
+```
+
+Use `;` instead of `:` on Windows.
+
+| Transport | Unset means |
+| :--- | :--- |
+| stdio | Any file you can read |
+| HTTP | No local file reads at all — callers must send `content_base64` |
+
+Set it whenever the agent only needs one project's assets. It is the difference between
+"upload this file" and "upload any file on my machine".
+
+## Command-line options
+
+```text
+dreep-mcp [--transport {stdio,http}] [--host HOST] [--port PORT] [--path PATH]
+```
+
+| Option | Default | Purpose |
+| :--- | :--- | :--- |
+| `--transport` | `stdio` | `http` runs the streamable HTTP server — see [Remote server](/mcp/remote) |
+| `--host` | `127.0.0.1` | Bind address for HTTP |
+| `--port` | `8000` | Port for HTTP |
+| `--path` | `/mcp` | Endpoint path for HTTP |
+
+## Picking a runtime
+
+| Runner | Command | Needs |
+| :--- | :--- | :--- |
+| **npx** | `npx -y dreep-mcp` | Node 20+ |
+| **uvx** | `uvx dreep-mcp` | [uv](https://docs.astral.sh/uv/) |
+| **pip** | `pip install dreep-mcp`, then `dreep-mcp` | Python 3.10+ |
+
+Both servers expose the same tools, with
+[one difference](/mcp/tools#differences-between-the-runtimes). Use whichever runtime you
+already have installed.
+
+## Trying the tools directly
+
+The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) runs the server
+outside any client, which is the fastest way to see the exact schemas and responses:
+
+```bash
+DREEP_API_KEY=drp_live_your_key npx @modelcontextprotocol/inspector npx -y dreep-mcp
+```

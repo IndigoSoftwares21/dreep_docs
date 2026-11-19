@@ -1,0 +1,80 @@
+---
+title: "Remote Server"
+description: "Run the Dreep MCP server over streamable HTTP for web agents, teams and containers."
+---
+
+For web-based agents, shared team servers or containers, run the streamable HTTP transport
+instead of stdio.
+
+```bash
+export DREEP_API_KEY=drp_live_your_key
+export DREEP_MCP_HTTP_TOKEN="$(openssl rand -hex 32)"
+
+npx -y dreep-mcp --transport http --host 0.0.0.0 --port 8000
+```
+
+The endpoint is `http://<host>:8000/mcp`, and every request must send:
+
+```http
+Authorization: Bearer <DREEP_MCP_HTTP_TOKEN>
+```
+
+## Connecting a client
+
+From Claude Code:
+
+```bash
+claude mcp add --transport http dreep https://mcp.example.com/mcp \
+  --header "Authorization: Bearer $DREEP_MCP_HTTP_TOKEN"
+```
+
+Other clients take the same URL and header in their own remote-server configuration.
+
+## Binding rules
+
+| `--host` | Behaviour |
+| :--- | :--- |
+| omitted | Binds to `127.0.0.1` — reachable only from the same machine |
+| any other address | Refused unless `DREEP_MCP_HTTP_TOKEN` is set |
+
+That refusal is deliberate: a server on a public address without a token would hand your
+whole Dreep project to anyone who found it.
+
+<Warning>
+  Put the server behind HTTPS — a reverse proxy or your platform's load balancer — before
+  exposing it. The bearer token is only as private as the connection carrying it. Tokens
+  are compared in constant time.
+</Warning>
+
+## Files over HTTP
+
+Over HTTP the tools can't read files on the server unless you explicitly allow directories
+with [`DREEP_MCP_FILE_ROOTS`](/mcp/configuration#file-access). Remote callers send files as
+`content_base64` instead:
+
+```json
+{
+  "name": "upload_file",
+  "arguments": {
+    "content_base64": "iVBORw0KGgo…",
+    "filename": "hero.png",
+    "folder": "marketing/2026"
+  }
+}
+```
+
+This is the safe default: a remote agent shouldn't be able to name a path on your server
+and have it uploaded.
+
+## Running it in a container
+
+```dockerfile
+FROM node:20-alpine
+ENV DREEP_MCP_HTTP_TOKEN=""
+ENV DREEP_API_KEY=""
+EXPOSE 8000
+CMD ["npx", "-y", "dreep-mcp", "--transport", "http", "--host", "0.0.0.0"]
+```
+
+Pass both secrets at run time rather than baking them into the image, and keep the
+container behind your own TLS termination.

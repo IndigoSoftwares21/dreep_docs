@@ -1,0 +1,194 @@
+---
+title: "Installation"
+description: "Add the Dreep MCP server to Claude, Cursor, VS Code, Windsurf, Codex, Gemini, Zed and other clients."
+---
+
+Every client needs the same three things: a command (`npx`), its arguments
+(`-y dreep-mcp`), and your API key in the `DREEP_API_KEY` environment variable. Replace
+`drp_live_your_key` with your own key from the **API Keys** page of the
+[Dreep dashboard](https://dreep.cloud).
+
+Add `DREEP_SIGNING_SECRET` if you use [signed folders](/security/signed-urls), and
+`DREEP_MCP_ALLOW_DELETE` if you want the delete tools — see
+[Configuration](/mcp/configuration).
+
+<Note>
+  The examples use `npx` (Node 20+). To run the Python server instead, swap
+  `"command": "npx", "args": ["-y", "dreep-mcp"]` for
+  `"command": "uvx", "args": ["dreep-mcp"]`.
+</Note>
+
+## Claude Desktop
+
+Open **Settings → Developer → Edit Config**, which opens `claude_desktop_config.json`:
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": {
+        "DREEP_API_KEY": "drp_live_your_key",
+        "DREEP_SIGNING_SECRET": "your_signing_secret"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Desktop. **Dreep** appears under the tools (slider) icon in the message box.
+
+<Tip>
+  If Claude Desktop can't find `npx`, use its full path (run `which npx`). GUI apps don't
+  always inherit your shell's `PATH`, which is common with nvm.
+</Tip>
+
+## Claude Code
+
+```bash
+claude mcp add dreep --scope user -e DREEP_API_KEY=drp_live_your_key -- npx -y dreep-mcp
+```
+
+`--scope user` makes it available in every project; leave it out to add it to the current
+project only. Check it with `claude mcp list`, or `/mcp` inside a session.
+
+To share the setup in a repository without committing the key, put this in `.mcp.json` and
+let each person export `DREEP_API_KEY` in their own shell:
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "${DREEP_API_KEY}" }
+    }
+  }
+}
+```
+
+## Cursor
+
+Open **Cursor Settings → MCP → Add new MCP server**, or edit `~/.cursor/mcp.json` (all
+projects) or `.cursor/mcp.json` (one project):
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "drp_live_your_key" }
+    }
+  }
+}
+```
+
+## VS Code (GitHub Copilot)
+
+Create `.vscode/mcp.json`. VS Code asks for the key the first time and stores it securely:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "dreep-api-key",
+      "description": "Dreep API key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "dreep": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "${input:dreep-api-key}" }
+    }
+  }
+}
+```
+
+Open Copilot Chat in **Agent** mode and pick the Dreep tools from the tools menu.
+
+## Windsurf
+
+Open **Windsurf Settings → Cascade → MCP Servers → View raw config**, or edit
+`~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "drp_live_your_key" }
+    }
+  }
+}
+```
+
+## OpenAI Codex CLI
+
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.dreep]
+command = "npx"
+args = ["-y", "dreep-mcp"]
+env = { DREEP_API_KEY = "drp_live_your_key" }
+```
+
+## Gemini CLI
+
+Add to `~/.gemini/settings.json`, or `.gemini/settings.json` in a project:
+
+```json
+{
+  "mcpServers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "drp_live_your_key" }
+    }
+  }
+}
+```
+
+## Zed
+
+Add to Zed's `settings.json` (**Zed → Settings → Open Settings**):
+
+```json
+{
+  "context_servers": {
+    "dreep": {
+      "command": "npx",
+      "args": ["-y", "dreep-mcp"],
+      "env": { "DREEP_API_KEY": "drp_live_your_key" }
+    }
+  }
+}
+```
+
+## Cline and other clients
+
+Cline (**MCP Servers → Configure**), Roo Code, Continue, Goose, JetBrains AI Assistant,
+LM Studio and most other clients take the same `mcpServers` block shown for
+[Cursor](#cursor). Anything that can launch a stdio MCP server can run `npx -y dreep-mcp`
+with `DREEP_API_KEY` set.
+
+## Remote clients over HTTP
+
+For web-based agents, shared team servers or containers, run the streamable HTTP transport
+instead — see [Remote server](/mcp/remote).
+
+## Checking it works
+
+Ask the agent to call `get_usage`. It needs no arguments and no files, so it confirms the
+key and the connection in one step. If nothing happens, check that the client lists the
+Dreep tools at all; most clients show MCP server startup errors in a log panel.

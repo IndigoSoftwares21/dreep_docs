@@ -1,0 +1,77 @@
+---
+title: "List Media"
+description: "List one page of assets with client.list_media()."
+---
+
+Lists one page of ready assets, with the total across all pages. To walk every page, use
+[`list_all_media()`](/python-sdk/media/list-all-media).
+
+```python
+page = client.list_media(folder="courses", page=1, limit=50)
+
+len(page.assets)        # 50
+page.pagination.total   # 318
+```
+
+## Signature
+
+```python
+client.list_media(
+    *,
+    page=None,
+    limit=None,
+    folder=None,
+    folder_id=None,
+    recursive=None,
+    timeout=NOT_GIVEN,
+) -> MediaPage
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `page` | `int` | 1-based page number |
+| `limit` | `int` | Items per page |
+| `folder` | `str` | Slug path to list |
+| `folder_id` | `str` | UUID of the folder to list. Mutually exclusive with `folder` |
+| `recursive` | `bool` | Include assets in subfolders |
+
+## Returns
+
+A `MediaPage`:
+
+```python
+page.assets              # list[MediaItem]
+page.pagination.page     # 1
+page.pagination.limit    # 50
+page.pagination.total    # 318 — across all pages
+
+item = page.assets[0]
+item.id          # "2f928a3f-1d2a-4a2b"
+item.url         # "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.webp"
+item.filename    # "hero.webp"
+item.mimetype    # "image/webp"
+item.size_bytes  # 245000 — int
+item.asset_type  # "image"
+item.folder      # "courses"
+item.folder_id   # "78b52933-…"
+item.created_at  # datetime
+```
+
+`MediaPage` also supports `len(page)` and iteration over its assets:
+
+```python
+for item in client.list_media(folder="courses"):
+    print(item.filename)
+```
+
+<Note>
+  Unconfirmed [presigned uploads](/python-sdk/upload/create-presigned-upload) are not
+  listed. An upload becomes an asset only once
+  [`confirm_upload()`](/python-sdk/upload/confirm-upload) has run.
+</Note>
+
+## Retries
+
+Listing is a GET, so it is retried automatically on 429, 5xx and connection failures —
+twice by default, with exponential backoff that honours `Retry-After`. See
+[Errors & Retries](/python-sdk/errors).

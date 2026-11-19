@@ -1,0 +1,157 @@
+---
+title: "Tools"
+description: "Every tool the Dreep MCP server exposes, what it does, and what it returns."
+---
+
+The server registers 14 tools, or 16 with [deletes enabled](/mcp/configuration#deletes).
+Each carries a typed JSON schema listing every valid transform value, so the agent calls
+them correctly the first time.
+
+| Tool | What it does | Kind |
+| :--- | :--- | :--- |
+| `upload_file` | Uploads an image, video, audio file or document from a local path or base64 content, optionally transforming it before storage. Files over 100 MB stream straight to storage | writes |
+| `create_upload_url` | Starts a presigned upload for bytes the server can't read (PUT them, then confirm) | writes |
+| `confirm_upload` | Finalizes a presigned upload and returns the asset | writes |
+| `list_media` | Lists assets with pagination, filtered by folder | read-only |
+| `remove_background` | Cuts the subject out of an image and stores a transparent PNG or WebP | writes |
+| `extract_text` | OCR for images and PDFs | writes |
+| `convert_document` | Word ↔ PDF, Excel, PowerPoint, CSV, or a PDF page to PNG/JPEG | writes |
+| `build_delivery_url` | Resize, crop, convert, compress, blur, round or trim an asset at the CDN | local, no network |
+| `build_signed_url` | A time-limited link for an asset in a signed folder | local, no network |
+| `create_folder` | Creates a folder or a whole path, with access control on top-level folders | writes |
+| `list_folders` | Lists folders with their paths and access control | read-only |
+| `create_preset` | Saves a named transform for reuse | writes |
+| `list_presets` | Lists saved presets | read-only |
+| `get_usage` | Storage used, and image, file and folder counts | read-only |
+| `delete_media` | Permanently deletes an asset. **Only when `DREEP_MCP_ALLOW_DELETE` is set** | destructive |
+| `delete_preset` | Deletes a preset. **Only when `DREEP_MCP_ALLOW_DELETE` is set** | destructive |
+
+Every tool carries MCP
+[annotations](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations):
+read-only tools are marked so clients can run them without asking, and delete tools are
+marked destructive so clients ask you first.
+
+## Uploading
+
+### upload_file
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `path` | `string` | Local file to upload. Subject to [`DREEP_MCP_FILE_ROOTS`](/mcp/configuration#file-access) |
+| `content_base64` | `string` | File content instead of a path — how remote callers send bytes |
+| `filename` | `string` | Name to store it under. Required with `content_base64` |
+| `content_type` | `string` | MIME type, when it can't be inferred |
+| `folder` | `string` | Destination path. Missing folders are created |
+| `key` | `string` | Full object key. Mutually exclusive with `folder` |
+| `folder_id` | `string` | UUID of an existing folder |
+| `auto_create_folders` | `boolean` | `false` to require the path already exists |
+| `transform` | `object` | Applied **before** storage |
+| `preset_key` | `string` | A saved preset, applied instead of `transform` |
+
+Returns the asset: `id`, `url`, `format`, `width`, `height`, `size_bytes`, `status`,
+`folder`.
+
+### create_upload_url and confirm_upload
+
+For bytes the server can't read. `create_upload_url` takes `content_type` and `size_bytes`
+(both required) plus the usual destination arguments, and returns an `id` and a short-lived
+`upload_url`. PUT the bytes there with exactly that content type and size, then call
+`confirm_upload` with the `id`.
+
+A conflict error from `confirm_upload` means the bytes haven't landed yet: retry the
+confirm, not the PUT.
+
+## Media
+
+### list_media
+
+`folder`, `folder_id`, `recursive`, `page`, `limit`. Returns assets with their pagination
+totals. Unconfirmed presigned uploads are not listed.
+
+### build_delivery_url
+
+Takes the asset's `url` (required) and a `transform` object, and returns the transformed
+URL. No network call — transforms run on the fly at the CDN and are cached.
+
+The `transform` schema is the full Dreep set: `format`, `width`, `height`, `fit`,
+`quality`, `gravity`, `crop`, `dpr`, `rotate`, `blur`, `bg`, `radius`, `trim_start`,
+`trim_end`, `video_codec`, `fps`, `page`, `preset`. Enum values are in the schema, so the
+agent can't invent one. See [Delivery URLs](/python-sdk/media/build-url#parameters) for
+what each does.
+
+### build_signed_url
+
+Takes `asset_id`, `url` and `expires_in_seconds` (all required), plus an optional
+`transform`. Needs `DREEP_SIGNING_SECRET` on the server.
+
+### delete_media
+
+Takes `media_id`. Registered only when `DREEP_MCP_ALLOW_DELETE` is set, and marked
+destructive so clients confirm it. Permanent: existing URLs, signed ones included, stop
+resolving.
+
+## Processing
+
+### remove_background
+
+`path` or `content_base64`, plus `filename`, `format` (`png` or `webp`), `folder`,
+`folder_id`, `auto_create_folders`. One cutout serves any background colour — pass `bg` to
+`build_delivery_url` afterwards.
+
+### extract_text
+
+`path` or `content_base64`, plus `filename`, `folder`, `folder_id`,
+`auto_create_folders`, and `include_blocks` for line-level bounding boxes. With a folder,
+the text is also stored as a `.txt` asset.
+
+### convert_document
+
+`format` is required. `path` or `content_base64`, plus `filename`, `page` (for a PDF page
+to an image), `key`, `folder`, `folder_id`, `auto_create_folders`. If `status` comes back
+`processing`, the `url` answers 202 until the conversion finishes.
+
+## Project
+
+### create_folder and list_folders
+
+`create_folder` takes `name` or `path`, plus `parent_id`, `parent_path`,
+`access_control_type` (`public`, `private`, `signed`) and `default_expiry_seconds`.
+Access control can only be set on a top-level folder; nested folders inherit it.
+
+`list_folders` takes `path`, `parent_id` or `root_only`.
+
+<Note>
+  The API has no endpoint for deleting folders, so there is no tool for it.
+</Note>
+
+### create_preset, list_presets, delete_preset
+
+`create_preset` takes `key`, `name` and `transform`, all required. Preset keys may only
+contain lowercase letters, digits and underscores, and a preset must include a `format`.
+`delete_preset` takes `preset_id` and is gated behind `DREEP_MCP_ALLOW_DELETE`.
+
+### get_usage
+
+No parameters. Returns storage bytes and image, file and folder counts — the quickest way
+to confirm the server is configured correctly.
+
+## Behaviours worth knowing
+
+These come straight from the [API reference](/api-reference/upload/upload-media), verified
+against the live API:
+
+- **Use URLs as returned.** Projects can serve assets from a custom CDN domain, so the
+  tools never construct a delivery URL from scratch; they transform the one Dreep returned.
+  That's why `build_delivery_url` takes a `url` rather than just an id.
+- **Signed URLs sign the asset and expiry only** — `HMAC-SHA256` over `"{id}:{exp}"`.
+  Transform parameters ride along unsigned, so one signed link can be resized without being
+  signed again.
+- **Access control is set on top-level folders**, and nested folders inherit it.
+- **Presets need a `format`**, and preset keys may only contain lowercase letters, digits
+  and underscores.
+
+## Differences between the runtimes
+
+The Node and Python servers expose the same tools from one generated contract, and CI fails
+if they drift. One difference comes from the Node SDK: `include_blocks` on `extract_text`
+— line blocks with bounding boxes — is available on the Python server only.

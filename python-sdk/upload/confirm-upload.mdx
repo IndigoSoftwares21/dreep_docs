@@ -1,0 +1,65 @@
+---
+title: "Confirm Upload"
+description: "Turn a presigned upload into an asset with client.confirm_upload()."
+---
+
+Finalizes a [presigned upload](/python-sdk/upload/create-presigned-upload) once its bytes
+are in storage. Until it is confirmed, the upload isn't an asset: it has no delivery URL
+and isn't listed by [`list_media()`](/python-sdk/media/list-media).
+
+```python
+asset = client.confirm_upload(upload.id)
+```
+
+## Signature
+
+```python
+client.confirm_upload(
+    upload_id,
+    *,
+    transform=None,
+    preset_key=None,
+    timeout=NOT_GIVEN,
+) -> Asset
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `upload_id` | `str` | **Required.** The `id` from `presign_upload()` |
+| `transform` | [`Transform`](/python-sdk/media/build-url#parameters) | Applied before the asset is stored |
+| `preset_key` | `str` | A saved preset, applied instead of `transform` |
+
+Returns an [`Asset`](/python-sdk/upload/upload-media#returns), the same shape `upload()`
+returns.
+
+## Confirming too early
+
+Storage takes a moment to make freshly written bytes readable. Confirming inside that
+window raises `DreepConflictError`:
+
+```python
+from dreep import DreepConflictError
+
+try:
+    asset = client.confirm_upload(upload.id)
+except DreepConflictError:
+    # the bytes haven't landed yet — retry the confirm, not the upload
+    ...
+```
+
+[`upload_presigned()`](/python-sdk/upload/create-presigned-upload#upload-presigned) already
+handles this for you, retrying the confirm while the bytes settle. Write the retry yourself
+only when the `PUT` happened somewhere you don't control, such as a browser.
+
+<Note>
+  Retry the **confirm**, never the upload. The bytes are already in storage; re-uploading
+  them stores and bills the file twice.
+</Note>
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepConflictError` | The bytes haven't landed yet |
+| `DreepNotFoundError` | Unknown `upload_id`, or it was already confirmed |
+| `DreepValidationError` | Invalid transform or preset key |

@@ -1,0 +1,115 @@
+---
+title: "Upload Media"
+description: "Upload a file with client.upload(), optionally transforming it before storage."
+---
+
+Uploads a file through the Dreep API in one multipart request. Simplest option, good up to
+a few hundred MB — for anything larger, or for uploads originating in a browser, use
+[`upload_presigned()`](/python-sdk/upload/create-presigned-upload).
+
+```python
+from pathlib import Path
+
+asset = client.upload(Path("hero.jpg"), folder="marketing/2026")
+```
+
+## Signature
+
+```python
+client.upload(
+    file,
+    *,
+    filename=None,
+    content_type=None,
+    folder=None,
+    key=None,
+    folder_id=None,
+    auto_create_folders=None,
+    transform=None,
+    preset_key=None,
+    timeout=NOT_GIVEN,
+) -> Asset
+```
+
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `file` | `bytes \| Path \| BinaryIO` | **Required.** The file to upload. A plain `str` is rejected |
+| `filename` | `str` | Name to store it under. Needed when the source carries none, such as `bytes` |
+| `content_type` | `str` | MIME type, when it can't be inferred from the filename |
+| `folder` | `str` | Slug path of the destination. Missing folders are created |
+| `key` | `str` | Full object key (folder path + filename). Mutually exclusive with `folder` |
+| `folder_id` | `str` | UUID of an existing folder |
+| `auto_create_folders` | `bool` | `False` to require the path already exists |
+| `transform` | [`Transform`](/python-sdk/media/build-url#parameters) | Applied **before** storage |
+| `preset_key` | `str` | A saved preset, applied instead of `transform` |
+| `timeout` | `float \| None` | Seconds for this call. Uploads have no default limit |
+
+Omit `folder`, `key` and `folder_id` and the asset lands in the project's default folder.
+See [Folders & Paths](/guides/folders-and-paths) for how paths resolve.
+
+## Returns
+
+An `Asset`:
+
+```python
+asset.id                 # "2f928a3f-1d2a-4a2b"
+asset.url                # "https://cdn.dreep.cloud/api/v1/fetch/2f928a3f-1d2a-4a2b.webp"
+asset.original_filename  # "hero.jpg"
+asset.mimetype           # "image/webp"
+asset.format             # "webp"      — images only
+asset.width              # 1200        — images only
+asset.height             # 800         — images only
+asset.size_bytes         # 245000      — int, not str
+asset.status             # "ready"
+asset.folder             # "marketing/2026"
+asset.folder_id          # "78b52933-…"
+asset.project_id         # "3ca76fa8-…"
+asset.created_at         # datetime(2026, 8, 16, 18, 53, 29, tzinfo=timezone.utc)
+```
+
+## Transforming on upload
+
+Anything in `transform` is applied before storage, so the transformed result is what gets
+stored and returned. The original is not kept.
+
+```python
+asset = client.upload(
+    Path("hero.jpg"),
+    transform={"width": 800, "format": "webp", "quality": 80},
+)
+
+asset.width   # 800
+asset.format  # "webp"
+```
+
+This counts against your plan's monthly transformation quota. Transforming at delivery time
+with [`url()`](/python-sdk/media/build-url) instead keeps the original intact and serves any
+number of variants from it.
+
+## Uploading bytes
+
+`bytes` carry no filename, so pass one — otherwise the API can't infer the type:
+
+```python
+asset = client.upload(photo_bytes, filename="hero.jpg")
+asset = client.upload(photo_bytes, filename="hero.jpg", content_type="image/jpeg")
+```
+
+A file object works too, and is read as it is sent:
+
+```python
+with open("hero.jpg", "rb") as handle:
+    asset = client.upload(handle)
+```
+
+## Errors
+
+| Error | Cause |
+| :--- | :--- |
+| `DreepNotFoundError` | `auto_create_folders=False` and the path doesn't exist |
+| `DreepLimitError` | Storage or transformation quota reached |
+| `DreepValidationError` | Unsupported file type, file too large, or an invalid transform |
+| `TypeError` | A misspelled transform key, such as `widht` — the message lists the valid ones |
+
+Uploads are never retried automatically — a repeat would store the file twice and bill it
+twice. See [Errors & Retries](/python-sdk/errors).
